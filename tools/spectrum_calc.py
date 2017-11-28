@@ -1,7 +1,7 @@
 from legion_tools import *
 
 
-def spectrum_calc(job_index, stack_directory):
+def spectrum_calc(job_index, stack_directory, save_state=False):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
@@ -43,6 +43,9 @@ def spectrum_calc(job_index, stack_directory):
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
     rho_ss = steadystate(H, c_ops)
+
+    if save_state:
+        qsave(rho_ss,'steady_state')
 
     expectations = []
     for e_op in e_ops.values():
