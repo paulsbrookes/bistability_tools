@@ -31,15 +31,25 @@ def slowdown_sim(job_index, output_directory):
     options = Options(nsteps=200000)
     bistability = False
 
-    if os.path.exists('./state_checkpoint.qu'):
-        initial_state = qload('./state_checkpoint')
-        previous_results = pd.read_csv('./results.csv')
-        delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
-        start_time = float(previous_results['times'].iloc[-1])
-        new_snapshots = sys_params.snapshots - start_time / delta_t
-        snapshot_times = np.linspace(start_time, sys_params.end_time, new_snapshots)
-        save = False
-        bistability = True
+    if os.path.exists('./steady_state.qu'):
+        if os.path.exists('./state_checkpoint.qu'):
+            initial_state = qload('./state_checkpoint')
+            previous_results = pd.read_csv('./results.csv')
+            delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
+            start_time = float(previous_results['times'].iloc[-1])
+            new_snapshots = sys_params.snapshots - start_time / delta_t
+            snapshot_times = np.linspace(start_time, sys_params.end_time, new_snapshots)
+            save = False #don't save the first row of results, it's already there
+            bistability = True
+        else:
+            rho_ss = qload('steady_state')
+            bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+            bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
+            qsave(bistability_characteristics, './characteristics')
+            start_time = 0
+            snapshot_times = np.linspace(start_time, sys_params.end_time, sys_params.snapshots)
+            save = True #save the first row of results
+
     else:
         rho_ss = steadystate(H, c_ops)
         qsave(rho_ss, './steady_state')

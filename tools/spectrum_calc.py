@@ -1,15 +1,12 @@
 from legion_tools import *
 
-def spectrum_calc(job_index, output_directory):
+
+def spectrum_calc(job_index, stack_directory):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
         stack_name = header.split('\n')[0]
         stack_frame = pd.read_csv(f)
-
-    #stack_frame = stack_frame.set_index('job_index')
-
-    stack_directory = output_directory + '/' + stack_name
 
     kappa_phi = 0.0
 

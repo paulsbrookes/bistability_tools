@@ -14,7 +14,7 @@ with open('stack.csv', 'r') as f:
     stack = pd.read_csv(f)
 
 home = os.environ['HOME']
-directory = home + '/Scratch/register/' + stack_name
+directory = home + '/Scratch/spectrum/' + stack_name
 
 n_jobs = stack.shape[0]
 
@@ -23,7 +23,7 @@ shutil.copyfile('stack.csv', directory+'/stack.csv')
 shutil.copyfile('simulate.py', directory+'/simulate.py')
 shutil.copyfile('submit.py', directory+'/submit.py')
 shutil.copytree('tools', directory+'/tools')
-n_threads = 128
+n_threads = 29
 
 content = "#!/bin/bash -l\n\n" \
 "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
@@ -31,7 +31,7 @@ content = "#!/bin/bash -l\n\n" \
 "# 1. Force bash as the executing shell.\n" \
 "#$ -S /bin/bash\n\n" \
 "# 2. Request ten minutes of wallclock time (format hours:minutes:seconds).\n" \
-"#$ -l h_rt=12:0:0\n\n" \
+"#$ -l h_rt=48:0:0\n\n" \
 "# 3. Request 1 gigabyte of RAM for each core/thread\n" \
 "#$ -l mem=0.5G\n\n" \
 "# 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)\n" \
@@ -51,7 +51,7 @@ content = "#!/bin/bash -l\n\n" \
 "module load mpi4py/2.0.0/python2\n" \
 "module load qutip/4.1.0/python-2.7.12\n\n" \
 "# 8. Run the application.\n" \
-"mpiexec -n " + str(n_threads) + "  python simulate.py"
+"mpiexec -n " + str(n_threads) + "  python simulate.py " + directory
 
 text_file = open("./submit.sh", "w")
 text_file.write(content)
@@ -59,7 +59,7 @@ text_file.close()
 
 #subprocess.call(["chmod", "a+x", "./submit.sh"])
 
-n_rounds = 10
+n_rounds = 1
 round_names = [stack_name+"_"+str(i) for i in range(n_rounds)]
 subprocess.call(["qsub","-N",round_names[0], "./submit.sh"])
 for i in range(1,n_rounds):
