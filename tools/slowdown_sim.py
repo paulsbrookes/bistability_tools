@@ -1,6 +1,7 @@
 from legion_tools import *
 
-def slowdown_sim(job_index, output_directory):
+
+def slowdown_sim(job_index, output_directory='./results'):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
@@ -29,7 +30,6 @@ def slowdown_sim(job_index, output_directory):
     H = hamiltonian(packaged_params)
     c_ops = collapse_operators(packaged_params)
     options = Options(nsteps=200000)
-    bistability = False
 
     if os.path.exists('./steady_state.qu'):
         if os.path.exists('./state_checkpoint.qu'):
@@ -44,6 +44,10 @@ def slowdown_sim(job_index, output_directory):
         else:
             rho_ss = qload('steady_state')
             bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+            if sys_params.qubit_state == 0:
+                initial_state = rho_dim
+            else:
+                initial_state = rho_bright
             bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
             qsave(bistability_characteristics, './characteristics')
             start_time = 0
@@ -60,7 +64,6 @@ def slowdown_sim(job_index, output_directory):
             initial_state = rho_dim
         else:
             initial_state = rho_bright
-        # initial_state = tensor(basis(sys_params.c_levels, 0), basis(sys_params.t_levels, sys_params.qubit_state))
         start_time = 0
         snapshot_times = np.linspace(start_time, sys_params.end_time, sys_params.snapshots)
         save = True

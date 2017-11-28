@@ -8,4 +8,8 @@ if __name__ == '__main__':
     parser.add_argument('output_directory', type=str)
     args = parser.parse_args()
     output_directory = args.output_directory
-    mpi_allocator(spectrum_calc, output_directory)
+    args = []
+    kwargs = dict()
+    kwargs['output_directory'] = output_directory
+    kwargs['save_state'] = True
+    mpi_allocator(spectrum_calc, args, kwargs)

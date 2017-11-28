@@ -1089,7 +1089,7 @@ def manage_jobs():
                     exit()
 
 
-def mpi_allocator(job, output_directory):
+def mpi_allocator(job, args, kwargs):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     status = MPI.Status()
@@ -1122,6 +1122,6 @@ def mpi_allocator(job, output_directory):
             exit()
         job_index = packaged_index[0]
 
-        job(job_index, output_directory)
+        job(job_index, *args, **kwargs)
 
         completed = True

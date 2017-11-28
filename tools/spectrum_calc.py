@@ -1,11 +1,10 @@
 from legion_tools import *
 
 
-def spectrum_calc(job_index, stack_directory, save_state=False):
+def spectrum_calc(job_index, output_directory='./results', save_state=False):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
-        stack_name = header.split('\n')[0]
         stack_frame = pd.read_csv(f)
 
     kappa_phi = 0.0
@@ -16,7 +15,7 @@ def spectrum_calc(job_index, stack_directory, save_state=False):
                                  frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                  frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                  frame_params.n_c)
-    directory = stack_directory + '/' + sys_params.group_folder + '/' + str(job_index)
+    directory = output_directory + '/' + sys_params.group_folder + '/' + str(job_index)
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -57,7 +56,7 @@ def spectrum_calc(job_index, stack_directory, save_state=False):
     results.index = [job_index]
     results.index.name = 'job_index'
 
-    with open('./results.csv', 'a') as file:
+    with open('./ss_results.csv', 'a') as file:
         results.to_csv(file, float_format='%.15f')
 
     os.chdir(cwd)
