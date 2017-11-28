@@ -32,10 +32,11 @@ if __name__ == '__main__':
         shutil.copyfile('stack.csv', stack_directory+'/stack.csv')
         shutil.copyfile('spectrum.py', stack_directory+'/spectrum.py')
         shutil.copyfile('slowdown.py', stack_directory + '/slowdown.py')
-        shutil.copyfile('submit.py', stack_directory+'/submit.py')
+        shutil.copyfile('sub_slowdown.py', stack_directory+'/sub_slowdown.py')
+        shutil.copyfile('sub_spectrum.py', stack_directory+'/sub_spectrum.py')
         shutil.copytree('tools', stack_directory+'/tools')
 
-    n_threads = 29
+    n_threads = 128
 
     content = "#!/bin/bash -l\n\n" \
     "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
@@ -63,13 +64,13 @@ if __name__ == '__main__':
     "module load mpi4py/2.0.0/python2\n" \
     "module load qutip/4.1.0/python-2.7.12\n\n" \
     "# 8. Run the application.\n" \
-    "mpiexec -n " + str(n_threads) + "  python simulate.py " + stack_directory
+    "mpiexec -n " + str(n_threads) + "  python slowdown.py " + stack_directory
 
     text_file = open("./submit.sh", "w")
     text_file.write(content)
     text_file.close()
 
-    n_rounds = 1
+    n_rounds = 5
     round_names = [stack_name+"_"+str(i) for i in range(n_rounds)]
     subprocess.call(["qsub","-N",round_names[0], "./submit.sh"])
     for i in range(1,n_rounds):
