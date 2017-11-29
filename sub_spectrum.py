@@ -36,7 +36,7 @@ if __name__ == '__main__':
         shutil.copyfile('sub_spectrum.py', stack_directory+'/sub_spectrum.py')
         shutil.copytree('tools', stack_directory+'/tools')
 
-    n_threads = 29
+    n_threads = 48
 
     content = "#!/bin/bash -l\n\n" \
     "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
