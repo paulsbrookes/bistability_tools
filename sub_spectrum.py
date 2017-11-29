@@ -12,6 +12,7 @@ if __name__ == '__main__':
     parser.add_argument('-r','--resume',default=False)
     args = parser.parse_args()
     output_directory = args.output_directory
+    output_directory = os.path.abspath(output_directory)
     resume = args.resume
 
     with open('stack.csv', 'r') as f:
