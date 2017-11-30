@@ -37,7 +37,7 @@ if __name__ == '__main__':
         shutil.copyfile('sub_spectrum.py', stack_directory+'/sub_spectrum.py')
         shutil.copytree('tools', stack_directory+'/tools')
 
-    n_threads = 29
+    n_threads = 48
 
     content = "#!/bin/bash -l\n\n" \
     "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     "# 1. Force bash as the executing shell.\n" \
     "#$ -S /bin/bash\n\n" \
     "# 2. Request ten minutes of wallclock time (format hours:minutes:seconds).\n" \
-    "#$ -l h_rt=48:0:0\n\n" \
+    "#$ -l h_rt=12:0:0\n\n" \
     "# 3. Request 1 gigabyte of RAM for each core/thread\n" \
     "#$ -l mem=0.5G\n\n" \
     "# 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)\n" \

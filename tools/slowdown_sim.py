@@ -8,7 +8,7 @@ def slowdown_sim(job_index, output_directory='./results'):
         stack_name = header.split('\n')[0]
         stack_frame = pd.read_csv(f)
 
-    stack_directory = output_directory + '/' + stack_name
+    stack_directory = output_directory
 
     kappa_phi = 0.0
 
