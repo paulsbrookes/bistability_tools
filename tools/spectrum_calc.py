@@ -41,6 +41,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
     for level in range(sys_params.t_levels):
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
+    print('Generating steady state for job_index = '+str(job_index))
     rho_ss = steadystate(H, c_ops)
 
     if save_state:

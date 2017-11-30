@@ -12,4 +12,5 @@ if __name__ == '__main__':
     kwargs = dict()
     kwargs['output_directory'] = output_directory
     kwargs['save_state'] = True
+    print('save_state = ' + str(kwargs['save_state']))
     mpi_allocator(spectrum_calc, args, kwargs)
