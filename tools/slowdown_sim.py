@@ -33,6 +33,7 @@ def slowdown_sim(job_index, output_directory='./results'):
 
     if os.path.exists('./steady_state.qu'):
         if os.path.exists('./state_checkpoint.qu'):
+            print('Loading state checkpoint for job_index = '+str(job_index))
             initial_state = qload('./state_checkpoint')
             previous_results = pd.read_csv('./results.csv')
             delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
@@ -55,6 +56,7 @@ def slowdown_sim(job_index, output_directory='./results'):
             save = True #save the first row of results
 
     else:
+        print('Finding steady state for job_index = '+str(job_index))
         rho_ss = steadystate(H, c_ops)
         qsave(rho_ss, './steady_state')
         bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
