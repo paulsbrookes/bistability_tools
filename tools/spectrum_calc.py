@@ -21,7 +21,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
         os.makedirs(directory)
     cwd = os.getcwd()
     os.chdir(directory)
-    print(directory)
+    print('Entering directory: '+directory)
     sys_params.to_csv('settings.csv')
 
     H = hamiltonian(packaged_params)
@@ -41,23 +41,24 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
     for level in range(sys_params.t_levels):
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
-    print('Generating steady state for job_index = '+str(job_index))
-    rho_ss = steadystate(H, c_ops)
+    if not os.path.exists('./steady_state.qu'):
+        if save_state or not os.path.exists('./ss_results.csv'):
+            print('Generating steady state for job_index = '+str(job_index))
+            rho_ss = steadystate(H, c_ops)
+            if save_state:
+                qsave(rho_ss,'steady_state')
 
-    if save_state:
-        qsave(rho_ss,'steady_state')
+        expectations = []
+        for e_op in e_ops.values():
+            expectations.append(expect(e_op, rho_ss))
 
-    expectations = []
-    for e_op in e_ops.values():
-        expectations.append(expect(e_op, rho_ss))
+        headings = [key for key in e_ops.keys()]
+        results = pd.DataFrame(expectations).T
+        results.columns = headings
+        results.index = [job_index]
+        results.index.name = 'job_index'
 
-    headings = [key for key in e_ops.keys()]
-    results = pd.DataFrame(expectations).T
-    results.columns = headings
-    results.index = [job_index]
-    results.index.name = 'job_index'
-
-    with open('./ss_results.csv', 'a') as file:
-        results.to_csv(file, float_format='%.15f')
+        with open('./ss_results.csv', 'a') as file:
+            results.to_csv(file, float_format='%.15f')
 
     os.chdir(cwd)
