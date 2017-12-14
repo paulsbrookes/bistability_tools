@@ -39,7 +39,7 @@ if __name__ == '__main__':
         shutil.copyfile('pang_spectrum.py', stack_directory+'/pang_spectrum.py')
         shutil.copytree('tools', stack_directory+'/tools')
 
-    n_threads = 2
+    n_threads = 3
 
     os.chdir(stack_directory)
 

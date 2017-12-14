@@ -918,7 +918,8 @@ def window_maximum_finder(i_limits, j_limits, array):
     else:
         return np.array([])
 
-def bistable_states_calc(rho_ss):
+
+def bistable_states_calc(rho_ss, show=False):
     c_levels = rho_ss.dims[0][0]
     t_levels = rho_ss.dims[0][1]
 
@@ -934,30 +935,33 @@ def bistable_states_calc(rho_ss):
     W = wigner(rho_c, xvec, xvec)
     W /= np.sum(W)
 
-    i_d_min = n_bins // 4
-    i_d_max = n_bins * 3 // 4
-    j_d_min = 0
-    j_d_max = n_bins // 2
+    if show:
+        fig, axes = plt.subplots(1, 1, figsize=(5, 5))
+        cont0 = axes.contourf(xvec, xvec, W, 100)
+        axes.plot([0, 0], axes.get_ylim())
+        axes.plot(axes.get_xlim(), [0, 0])
+        lbl2 = axes.set_title("Wigner")
 
-    i_d_limits = [i_d_min, i_d_max]
-    j_d_limits = [j_d_min, j_d_max]
+    max_peak = window_maximum_finder([0, n_bins], [0, n_bins], W)
 
-    i_b_min = 0
-    i_b_max = n_bins // 2
-    j_b_min = n_bins // 2
-    j_b_max = n_bins
-
-    i_b_limits = [i_b_min, i_b_max]
-    j_b_limits = [j_b_min, j_b_max]
-
-    # fig, axes = plt.subplots(1, 1, figsize=(5,5))
-    # cont0 = axes.contourf(xvec, xvec, W, 100)
-    # axes.plot([0,0],axes.get_ylim())
-    # axes.plot(axes.get_xlim(),[0,0])
-    # lbl2 = axes.set_title("Wigner")
-
-    peak_dim = window_maximum_finder(i_d_limits, j_d_limits, W)
-    peak_bright = window_maximum_finder(i_b_limits, j_b_limits, W)
+    if max_peak[1] > n_bins // 2:
+        peak_bright = max_peak
+        i_d_min = n_bins // 4
+        i_d_max = n_bins * 3 // 4
+        j_d_min = 0
+        j_d_max = n_bins // 2 + (peak_bright[1] - (n_bins // 2)) // 2
+        i_d_limits = [i_d_min, i_d_max]
+        j_d_limits = [j_d_min, j_d_max]
+        peak_dim = window_maximum_finder(i_d_limits, j_d_limits, W)
+    else:
+        peak_dim = max_peak
+        i_b_min = 0
+        i_b_max = n_bins // 2
+        j_b_min = n_bins // 2
+        j_b_max = n_bins
+        i_b_limits = [i_b_min, i_b_max]
+        j_b_limits = [j_b_min, j_b_max]
+        peak_bright = window_maximum_finder(i_b_limits, j_b_limits, W)
 
     if peak_dim.shape[0] == 2 and peak_bright.shape[0] == 2:
 
@@ -983,9 +987,10 @@ def bistable_states_calc(rho_ss):
         mask_within = (threshold_array >= 0) * (threshold_array < n_bins)
         threshold_array_sat = mask_within * threshold_array + mask_above * (n_bins - 1)
 
-        # axes.scatter(xvec[peak_dim[1]],xvec[peak_dim[0]],color='r')
-        # axes.scatter(xvec[peak_bright[1]],xvec[peak_bright[0]],color='r')
-        # axes.scatter(xvec[j_array],xvec[i_array])
+        if show:
+            axes.scatter(xvec[peak_dim[1]], xvec[peak_dim[0]], color='r')
+            axes.scatter(xvec[peak_bright[1]], xvec[peak_bright[0]], color='r')
+            axes.scatter(xvec[j_array], xvec[i_array])
 
         p_bright = 0
         p_dim = 0
@@ -1000,7 +1005,7 @@ def bistable_states_calc(rho_ss):
         characteristics['contrast'] = contrast
 
         if contrast > bistability_threshold:
-            bistability = True            
+            bistability = True
 
             bright_alpha = np.sum(xvec[peak_bright] * np.array([1j, 1]))
             bright_projector = tensor(coherent_dm(c_levels, bright_alpha), qeye(t_levels))
