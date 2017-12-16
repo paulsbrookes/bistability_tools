@@ -71,7 +71,7 @@ if __name__ == '__main__':
     text_file.write(content)
     text_file.close()
 
-    n_rounds = 5
+    n_rounds = 2
     round_names = [stack_name+"_"+str(i) for i in range(n_rounds)]
     subprocess.call(["qsub","-N",round_names[0], "./submit.sh"])
     for i in range(1,n_rounds):
