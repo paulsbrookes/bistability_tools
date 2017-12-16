@@ -10,6 +10,7 @@ import scipy.integrate
 import pandas as pd
 import pickle
 import scipy.special as special
+import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
@@ -929,7 +930,7 @@ def bistable_states_calc(rho_ss, show=False):
     characteristics = dict()
 
     n_bins = 101
-    bistability_threshold = 1e-5
+    bistability_threshold = 1e-15
     rho_c = rho_ss.ptrace(0)
     xvec = np.linspace(-10, 10, n_bins)
     W = wigner(rho_c, xvec, xvec)
@@ -1016,6 +1017,9 @@ def bistable_states_calc(rho_ss, show=False):
             dim_projector = tensor(coherent_dm(c_levels, dim_alpha), qeye(t_levels))
             rho_dim = dim_projector * rho_ss
             rho_dim /= rho_dim.norm()
+
+    if show:
+        plt.show()
 
     return bistability, rho_dim, rho_bright, characteristics
 
