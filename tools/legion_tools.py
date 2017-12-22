@@ -694,10 +694,11 @@ def _generic_ode_solve_checkpoint(r, rho0, tlist, e_ops, opt, progress_bar, save
             rho_checkpoint = Qobj(vec2mat(r.y))
             rho_checkpoint.dims = dims
 
-            if t_idx % 20 == 0:
-                rho_c = rho_checkpoint.ptrace(0)
-                with open('./cavity_states.pkl', 'ab') as f:
-                    pickle.dump(rho_c, f)
+            if False:
+                if t_idx % 20 == 0:
+                    rho_c = rho_checkpoint.ptrace(0)
+                    with open('./cavity_states.pkl', 'ab') as f:
+                        pickle.dump(rho_c, f)
 
             with open('./results.csv', 'a') as file:
                 results.to_csv(file, header=first_row, float_format='%.15f')
