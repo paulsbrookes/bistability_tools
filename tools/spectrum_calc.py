@@ -15,7 +15,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
                                  frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                  frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                  frame_params.n_c)
-    directory = output_directory + '/' + sys_params.group_folder + '/' + str(job_index)
+    directory = output_directory + '/' + sys_params.group_folder + '/' + str(sys_params.job_index)
 
     if not os.path.exists(directory):
         os.makedirs(directory)
