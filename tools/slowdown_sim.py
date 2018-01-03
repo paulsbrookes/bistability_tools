@@ -18,7 +18,8 @@ def slowdown_sim(job_index, output_directory='./results'):
                                  frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                  frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                  frame_params.n_c)
-    directory = stack_directory + '/' + sys_params.group_folder + '/' + str(job_index)
+    #directory = stack_directory + '/' + sys_params.group_folder + '/' + str(job_index)
+    directory = stack_directory + '/' + sys_params.group_folder + '/' + str(sys_params.job_index)
 
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -29,7 +30,7 @@ def slowdown_sim(job_index, output_directory='./results'):
 
     H = hamiltonian(packaged_params)
     c_ops = collapse_operators(packaged_params)
-    options = Options(nsteps=200000)
+    options = Options(nsteps=2000000)
 
     if os.path.exists('./steady_state.qu'):
         if os.path.exists('./state_checkpoint.qu'):
