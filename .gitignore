@@ -3,6 +3,9 @@ cqed_lib/cqed_tools/dist
 cqed_lib/build
 cqed_lib/dist
 cqed_lib/cqed_tools.egg-info
+cqed_lib/cqed_tools/cqed_tools.egg-info
 simulation/calibration
 simulation/stack_generation
 simulation/analysis.ipynb
+.idea
+.ipynb_checkpoints
