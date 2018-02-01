@@ -11,6 +11,7 @@ import pandas as pd
 import pickle
 import scipy.special as special
 import matplotlib.pyplot as plt
+import pygsl.testing.sf as sf
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
@@ -779,21 +780,26 @@ def dispersion_op_gen(sys_params):
     return dispersion_op
 
 
-def transmon_energies_calc(params):
+def mathieu_ab_single(idx, q):
+    if idx % 2 == 0:
+        characteristic = sf.mathieu_a(idx, q)
+    else:
+        characteristic = sf.mathieu_b(idx+1, q)
+    return characteristic
+
+mathieu_ab = np.vectorize(mathieu_ab_single)
+
+def transmon_energies_calc(params, normalize=True):
     Ec = params.Ec
     Ej = params.Ej
     q = -Ej/(2*Ec)
     n_levels = params.t_levels
-    n_even = n_levels//2 + n_levels%2
-    n_odd = n_levels//2
-    even_levels = np.arange(0,2*n_even,2)
-    odd_levels = np.arange(2,2*(n_odd+1),2)
-    even_energies = Ec*special.mathieu_a(even_levels,q)
-    odd_energies = Ec*special.mathieu_b(odd_levels,q)
-    energies = np.hstack([even_energies,odd_energies])
-    sorted_energies = np.sort(energies)
-    sorted_energies -= sorted_energies[0]
-    return sorted_energies
+    energies = Ec*mathieu_ab(np.arange(n_levels),q)
+    ref_energies = energies - energies[0]
+    if normalize:
+        return ref_energies
+    else:
+        return energies
 
 
 def transmon_hamiltonian_gen(params):
@@ -805,33 +811,71 @@ def transmon_hamiltonian_gen(params):
     return transmon_hamiltonian
 
 
-def overlap_func(theta, i, j, params):
-    q = -params.Ej / (2 * params.Ec)
-    if i % 2 == 0:
-        bra = np.conjugate(special.mathieu_cem(i, q, theta * 180 / np.pi)[0]) * np.sqrt(2 / np.pi)
-    else:
-        bra = np.conjugate(special.mathieu_sem(i + 1, q, theta * 180 / np.pi)[0]) * np.sqrt(2 / np.pi)
-    if j % 2 == 0:
-        ket = special.mathieu_cem(j, q, theta * 180 / np.pi)[1] * np.sqrt(2 / np.pi)
-    else:
-        ket = special.mathieu_sem(j + 1, q, theta * 180 / np.pi)[1] * np.sqrt(2 / np.pi)
+def transition_func(theta, i, j, q):
+    bra = np.conjugate(psi_calc(theta,i,q))
+    step = 1e-7
+    ket = derivative_calc(psi_calc,theta,[j,q],step)
     overlap_point = bra * ket
-
     return overlap_point
 
 
-def coupling_calc(i, j, params):
-    coupling, error = scipy.integrate.quad(overlap_func, 0, np.pi, args=(i, j, params))
+def overlap_func(theta, i, j, q):
+    bra = np.conjugate(psi_calc(theta,i,q))
+    ket = psi_calc(theta,j,q)
+    overlap_point = bra * ket
+    return overlap_point
+
+
+def coupling_calc_single(i, j, q):
+    coupling, error = scipy.integrate.quad(transition_func, 0, 2*np.pi, args=(i, j, q))
     return np.abs(coupling)
 
 
-coupling_vec_calc = np.vectorize(coupling_calc)
+coupling_calc = np.vectorize(coupling_calc_single)
+
+
+def psi_calc(theta, idx, q):
+    if idx % 2 == 0:
+        psi = sf.mathieu_ce(idx,q,theta/2)/np.sqrt(np.pi)
+    else:
+        psi = sf.mathieu_se(idx+1,q,theta/2)/np.sqrt(np.pi)
+    return psi
+
+
+def derivative_calc(func, x, params, step):
+    derivative = (func(x+step,*params)-func(x,*params))/step
+    return derivative
+
+
+def low_coupling(idx,q):
+    coupling = np.sqrt((idx+1)/2.0) * (-q/4)**0.25
+    return coupling
+
+
+def low_energies_calc_single(idx, params):
+    Ec = params.Ec
+    Ej = params.Ej
+    energy = -Ej + np.sqrt(8.0*Ec*Ej)*(idx+0.5) - Ec*(6.0*idx**2 + 6.0*idx +3.0)/12.0
+    return energy
+
+low_energies_calc = np.vectorize(low_energies_calc_single)
+
+
+def high_energies_calc_single(idx, params):
+    if idx % 2 == 0:
+        energy = params.Ec * idx**2
+    else:
+        energy = params.Ec * (idx+1)**2
+    return energy
+
+high_energies_calc = np.vectorize(high_energies_calc_single)
 
 
 def coupling_hamiltonian_gen(params):
     lower_levels = np.arange(0,params.t_levels-1)
     upper_levels = np.arange(1,params.t_levels)
-    coupling_array = coupling_vec_calc(lower_levels,upper_levels,params)
+    q = -params.Ej / (2 * params.Ec)
+    coupling_array = coupling_calc(lower_levels,upper_levels,q)
     coupling_array = coupling_array/coupling_array[0]
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     down_transmon_transitions = 0
