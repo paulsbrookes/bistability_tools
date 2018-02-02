@@ -868,6 +868,7 @@ def high_energies_calc_single(idx, params):
         energy = params.Ec * (idx+1)**2
     return energy
 
+
 high_energies_calc = np.vectorize(high_energies_calc_single)
 
 

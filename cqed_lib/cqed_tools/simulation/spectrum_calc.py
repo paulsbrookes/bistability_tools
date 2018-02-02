@@ -3,6 +3,7 @@ from legion_tools import *
 
 def spectrum_calc(job_index, output_directory='./results', save_state=False):
 
+
     with open('stack.csv', 'r') as f:
         header = f.readline()
         stack_frame = pd.read_csv(f)
