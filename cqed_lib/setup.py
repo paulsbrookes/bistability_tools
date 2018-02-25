@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
-from Cython.Distutils import build_ext
 
 EXT_MODULES = [Extension("cqed_tools.cy.gsl", ["cqed_tools/cy/gsl.pyx"],libraries=["gsl","gslcblas"])]
 

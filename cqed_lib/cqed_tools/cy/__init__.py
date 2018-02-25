@@ -1,1 +1,1 @@
-from gsl import *
+from .gsl import *
