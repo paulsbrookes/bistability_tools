@@ -57,13 +57,13 @@ if __name__ == '__main__':
     "# write to \$HOME.\n" \
     "# Replace \"<your_UCL_id>\" with your UCL user ID :)\n" \
     "#$ -wd " + stack_directory + "\n\n" \
-    "module unload compilers/intel/2017/update1\n" \
+    "module unload compilers\n" \
+    "module load compilers/gnu\n" \
     "module unload mpi/intel/2017/update1/intel\n" \
+    "module load mpi/openmpi/3.0.0/gnu-4.9.2\n" \
+    "module load gsl/1.16/gnu-4.9.2\n" \
     "module load python2/recommended\n" \
-    "module load compilers/gnu/4.9.2\n" \
-    "module load mpi/openmpi/1.10.1/gnu-4.9.2\n" \
-    "module load mpi4py/2.0.0/python2\n" \
-    "module load qutip/4.1.0/python-2.7.12\n\n" \
+    "module load mpi4py/2.0.0/python2\n\n" \
     "# 8. Run the application.\n" \
     "mpiexec -n " + str(n_threads) + "  python slowdown.py " + stack_directory
 
