@@ -780,18 +780,11 @@ def dispersion_op_gen(sys_params):
     return dispersion_op
 
 
-def mathieu_ab_single_deprecated(idx, q):
+def mathieu_ab_single(idx, q):
     if idx % 2 == 0:
         characteristic = sf.mathieu_a(idx, q)
     else:
         characteristic = sf.mathieu_b(idx+1, q)
-    return characteristic
-
-def mathieu_ab_single(idx, q):
-    if idx % 2 == 0:
-        characteristic = special.mathieu_a(idx, q)
-    else:
-        characteristic = special.mathieu_b(idx+1, q)
     return characteristic
 
 mathieu_ab = np.vectorize(mathieu_ab_single)
@@ -818,7 +811,7 @@ def transmon_hamiltonian_gen(params):
     return transmon_hamiltonian
 
 
-def transition_func_deprecated(theta, i, j, q):
+def transition_func(theta, i, j, q):
     bra = np.conjugate(psi_calc(theta,i,q))
     step = 1e-7
     ket = derivative_calc(psi_calc,theta,[j,q],step)
@@ -826,16 +819,9 @@ def transition_func_deprecated(theta, i, j, q):
     return overlap_point
 
 
-def transition_func(theta, i, j, q):
-    bra, braprime = np.conjugate(psi_calc(theta,i,q))
-    ket, ketprime = psi_calc(theta, j, q)
-    overlap_point = bra * ketprime
-    return overlap_point
-
-
 def overlap_func(theta, i, j, q):
-    bra, braprime = np.conjugate(psi_calc(theta,i,q))
-    ket, ketprime = psi_calc(theta,j,q)
+    bra = np.conjugate(psi_calc(theta,i,q))
+    ket = psi_calc(theta,j,q)
     overlap_point = bra * ket
     return overlap_point
 
@@ -848,20 +834,12 @@ def coupling_calc_single(i, j, q):
 coupling_calc = np.vectorize(coupling_calc_single)
 
 
-def psi_calc_deprecated(theta, idx, q):
+def psi_calc(theta, idx, q):
     if idx % 2 == 0:
         psi = sf.mathieu_ce(idx,q,theta/2)/np.sqrt(np.pi)
     else:
         psi = sf.mathieu_se(idx+1,q,theta/2)/np.sqrt(np.pi)
     return psi
-
-
-def psi_calc(theta, idx, q):
-    if idx % 2 == 0:
-        psi, psiprime = special.mathieu_cem(idx,q,theta*180/np.pi)/np.sqrt(2/np.pi)
-    else:
-        psi, psiprime = special.mathieu_sem(idx+1,q,theta*180/np.pi)/np.sqrt(2/np.pi)
-    return psi, psiprime
 
 
 def derivative_calc(func, x, params, step):
