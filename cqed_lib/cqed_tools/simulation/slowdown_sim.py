@@ -1,4 +1,4 @@
-from legion_tools import *
+from .legion_tools import *
 
 
 def slowdown_sim(job_index, output_directory='./results'):

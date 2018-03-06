@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 from scipy.optimize import curve_fit
 from qutip import *
-from loading import *
+from .loading import *
 
 def decay(t, ar, ai, br, bi, T):
     signal_r = ar - br * np.exp(-t / T)

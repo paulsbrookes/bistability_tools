@@ -9,9 +9,10 @@ import numpy as np
 import scipy.integrate
 import pandas as pd
 import pickle
-import scipy.special as special
+#import scipy.special as special
 import matplotlib.pyplot as plt
-import pygsl.testing.sf as sf
+#import pygsl.testing.sf as sf
+from .gsl import *
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
@@ -782,9 +783,9 @@ def dispersion_op_gen(sys_params):
 
 def mathieu_ab_single(idx, q):
     if idx % 2 == 0:
-        characteristic = sf.mathieu_a(idx, q)
+        characteristic = mathieu_a(idx, q)
     else:
-        characteristic = sf.mathieu_b(idx+1, q)
+        characteristic = mathieu_b(idx+1, q)
     return characteristic
 
 mathieu_ab = np.vectorize(mathieu_ab_single)
@@ -836,9 +837,9 @@ coupling_calc = np.vectorize(coupling_calc_single)
 
 def psi_calc(theta, idx, q):
     if idx % 2 == 0:
-        psi = sf.mathieu_ce(idx,q,theta/2)/np.sqrt(np.pi)
+        psi = mathieu_ce(idx,q,theta/2)/np.sqrt(np.pi)
     else:
-        psi = sf.mathieu_se(idx+1,q,theta/2)/np.sqrt(np.pi)
+        psi = mathieu_se(idx+1,q,theta/2)/np.sqrt(np.pi)
     return psi
 
 
