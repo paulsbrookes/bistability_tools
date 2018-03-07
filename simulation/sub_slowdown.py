@@ -61,7 +61,6 @@ if __name__ == '__main__':
     "module load compilers/gnu\n" \
     "module unload mpi/intel/2017/update1/intel\n" \
     "module load mpi/openmpi/3.0.0/gnu-4.9.2\n" \
-    "module load gsl/1.16/gnu-4.9.2\n" \
     "module load python2/recommended\n" \
     "module load mpi4py/2.0.0/python2\n\n" \
     "# 8. Run the application.\n" \
