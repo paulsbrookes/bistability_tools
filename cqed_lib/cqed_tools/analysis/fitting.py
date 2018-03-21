@@ -175,22 +175,23 @@ def analyse_tree(directory, use_flags=True, save=True, load=True):
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
+        else:
+	    os.remove(cache_dir+'/simulated_results.nc')
+	    os.remove(cache_dir+'/a_ss.nc')
+	    os.remove(cache_dir+'/collated_popt.nc')
+	    os.remove(cache_dir+'/collated_directories.qu')
 
         results_dict = dict()
         results_dict['constants'] = time_constants
         results = xr.Dataset(results_dict)
-        os.remove(cache_dir+'/simulated_results.nc')
         results.to_netcdf(cache_dir+'/simulated_results.nc')
 
         collated_a_ss_dict = {'a_r': collated_a_ss.real, 'a_i': collated_a_ss.imag}
         collated_a_ss_dataset = xr.Dataset(collated_a_ss_dict)
-        os.remove(cache_dir+'/a_ss.nc')
         collated_a_ss_dataset.to_netcdf(cache_dir+'/a_ss.nc')
 
-        os.remove(cache_dir+'/collated_popt.nc')
         collated_popt.to_netcdf(cache_dir+'/collated_popt.nc')
 
-        os.remove(cache_dir+'/collated_directories.qu')
         qsave(collated_directories, cache_dir+'/collated_directories')
 
     return time_constants, collated_a_ss, collated_popt, collated_directories
