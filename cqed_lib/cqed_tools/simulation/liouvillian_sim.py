@@ -19,6 +19,7 @@ def liouvillian_sim(job_index, output_directory='./results'):
                                  frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                  frame_params.n_c)
     #directory = stack_directory + '/' + sys_params.group_folder + '/' + str(job_index)
+
     directory = stack_directory + '/' + sys_params.group_folder + '/' + str(sys_params.job_index)
 
     if not os.path.exists(directory):

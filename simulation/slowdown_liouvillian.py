@@ -19,4 +19,4 @@ if __name__ == '__main__':
     n_jobs = stack_frame.shape[0]
 
     for job_index in range(n_jobs):
-        liouvillian_sim(job_index, *kwargs)
+        liouvillian_sim(job_index, output_directory)
