@@ -31,7 +31,6 @@ if __name__ == '__main__':
     else:
         os.mkdir(stack_directory)
         shutil.copyfile('stack.csv', stack_directory+'/stack.csv')
-        shutil.copyfile('spectrum.py', stack_directory+'/spectrum.py')
         shutil.copyfile('slowdown_liouvillian.py', stack_directory + '/slowdown_liouvillian.py')
         shutil.copyfile('pang_liouvillian.py', stack_directory+'/pang_liouvillian.py')
 
