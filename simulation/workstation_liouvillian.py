@@ -27,12 +27,11 @@ if __name__ == '__main__':
     print('hello')
 
     if os.path.exists(stack_directory):
-        if resume:
-            os.remove(stack_directory+'/register.csv')
-            print('Deleted register and resuming.')
-        else:
+        if not resume:
             raise RuntimeError(stack_directory + ' already exists but resume = False.')
     else:
+        if not os.path.exists(output_directory):
+            os.mkdir(output_directory)
         os.mkdir(stack_directory)
         shutil.copyfile('stack.csv', stack_directory+'/stack.csv')
         shutil.copyfile('slowdown_liouvillian_alt.py', stack_directory + '/slowdown_liouvillian_alt.py')
