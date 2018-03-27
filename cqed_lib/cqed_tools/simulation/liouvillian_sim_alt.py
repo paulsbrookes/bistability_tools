@@ -49,14 +49,18 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
             eigenvalue = default_eigenvalue
 
     values, states = lin.eigs(csc, k=10, sigma=eigenvalue, v0=eigenstate)
-    sort_indices = np.argsort(np.abs(values))
+    sign_tol = 1e-15
+    sign_mask = values.real < 0 + sign_tol
+    values = values[sign_mask]
+    states = states[:,sign_mask]
+    sort_indices = np.argsort(-values.real)
     values = values[sort_indices]
     states = states[:,sort_indices]
     values = pd.DataFrame(values)
     values.columns = ['eigenvalues']
     states = pd.DataFrame(states)
     values.to_csv('eigenvalues.csv',index=False)
-    states.to_csv('states.csv',index=False)
+    states.iloc[:,0:3].to_csv('states.csv',index=False)
 
     mask = np.abs(values) > 1e-10
     mask = mask.values[:,0]
@@ -66,6 +70,6 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     os.chdir(cwd)
 
     print(states.values[:,chosen_index])
-    print('hello!')
+    print('sign!')
 
     return values.values[chosen_index,0], states.values[:,chosen_index]
