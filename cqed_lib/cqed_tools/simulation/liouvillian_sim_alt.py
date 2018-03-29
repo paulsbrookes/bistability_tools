@@ -61,13 +61,13 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     attempts = 0
     wrriten = False
     while not written and attempts < 3:
-    try:
-        states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
-        trial_opening = pd.read_hdf('states.h5')
-        written = True
-    except:
-        attempts += 1
-        print('failed to open')
+        try:
+            states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
+            trial_opening = pd.read_hdf('states.h5')
+            written = True
+        except:
+            attempts += 1
+            print('failed to open')
 
     if not written:
         states.iloc[:,0:3].to_csv('states.csv')
@@ -79,7 +79,6 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
 
     os.chdir(cwd)
 
-    print(states.values[:,chosen_index])
-    print('hello!')
+    print('howland')
 
     return values.values[chosen_index,0], states.values[:,chosen_index]
