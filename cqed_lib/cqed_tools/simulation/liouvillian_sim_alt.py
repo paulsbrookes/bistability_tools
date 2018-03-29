@@ -59,7 +59,7 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     values.to_csv('eigenvalues.csv',index=False)
 
     attempts = 0
-    wrriten = False
+    written = False
     while not written and attempts < 3:
         try:
             states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
