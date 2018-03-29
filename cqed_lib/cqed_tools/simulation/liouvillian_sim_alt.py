@@ -49,18 +49,28 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
             eigenvalue = default_eigenvalue
 
     values, states = lin.eigs(csc, k=10, sigma=eigenvalue, v0=eigenstate)
-    sign_tol = 1e-15
-    sign_mask = values.real < 0 + sign_tol
-    values = values[sign_mask]
-    states = states[:,sign_mask]
-    sort_indices = np.argsort(-values.real)
+    sort_indices = np.argsort(np.abs(values))
     values = values[sort_indices]
     states = states[:,sort_indices]
+    mi = pd.MultiIndex.from_tuples((frame_params.values[:],), names=frame_params.index)
     values = pd.DataFrame(values)
     values.columns = ['eigenvalues']
     states = pd.DataFrame(states)
     values.to_csv('eigenvalues.csv',index=False)
-    states.iloc[:,0:3].to_csv('states.csv',index=False)
+
+    attempts = 0
+    wrriten = False
+    while not written and attempts < 3:
+    try:
+        states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
+        trial_opening = pd.read_hdf('states.h5')
+        written = True
+    except:
+        attempts += 1
+        print('failed to open')
+
+    if not written:
+        states.iloc[:,0:3].to_csv('states.csv')
 
     mask = np.abs(values) > 1e-10
     mask = mask.values[:,0]
@@ -70,6 +80,6 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     os.chdir(cwd)
 
     print(states.values[:,chosen_index])
-    print('sign!')
+    print('hello!')
 
     return values.values[chosen_index,0], states.values[:,chosen_index]
