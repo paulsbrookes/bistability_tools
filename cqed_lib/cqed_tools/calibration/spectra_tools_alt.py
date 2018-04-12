@@ -16,6 +16,8 @@ from collections import OrderedDict
 from datetime import datetime
 import scipy.special as special
 import scipy
+import scipy.sparse.linalg as lin
+
 
 class SpectrumOptions:
     def __init__(self, fd_lower=10.46, fd_upper=10.52, threshold=0.05, display=False):
@@ -24,24 +26,29 @@ class SpectrumOptions:
         self.threshold = threshold
         self.display = display
 
+
 def lin_func(x, a, b):
-    return a*x + b
+    return a * x + b
+
 
 def steadystate_occupations_calc(params):
     c_ops = collapse_operators(params)
     H = hamiltonian(params)
-    rho_ss = steadystate(H,c_ops)
+    rho_ss = steadystate(H, c_ops)
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
-    n_t = expect(sm.dag()*sm, rho_ss)
-    n_c = expect(a.dag()*a, rho_ss)
+    n_t = expect(sm.dag() * sm, rho_ss)
+    n_c = expect(a.dag() * a, rho_ss)
     return n_t, n_c
 
+
 def quadratic_func(x, a, b, c):
-    return a*(x-b)**2 + c
+    return a * (x - b) ** 2 + c
+
 
 def lorentzian_func(f, A, f_r, Q, c):
-    return A*(f_r/Q)/(((f_r/Q)**2 + 4*(f-f_r)**2))**0.5 + c
+    return A * (f_r / Q) / (((f_r / Q) ** 2 + 4 * (f - f_r) ** 2)) ** 0.5 + c
+
 
 def lorentzian_fit(x, y):
     max_idx = np.argmax(y)
@@ -50,6 +57,7 @@ def lorentzian_fit(x, y):
     f_r_est = x[max_idx]
     popt, pcov = curve_fit(lorentzian_func, x, y, p0=[A_est, f_r_est, Q_est, 0.01])
     return popt, pcov
+
 
 class Parameters:
     def __init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t, n_c):
@@ -70,42 +78,49 @@ class Parameters:
         self.labels = ['f_d', 'eps', 'E_j', 'f_c', 'g', 'kappa', 'kappa_phi', 'gamma', 'gamma_phi', 'E_c', 'n_t', 'n_c']
 
     def copy(self):
-        params = Parameters(self.fc, self.Ej, self.g, self.Ec, self.eps, self.fd, self.kappa, self.gamma, self.t_levels, self.c_levels, self.gamma_phi, self.kappa_phi, self.n_t, self.n_c)
+        params = Parameters(self.fc, self.Ej, self.g, self.Ec, self.eps, self.fd, self.kappa, self.gamma, self.t_levels,
+                            self.c_levels, self.gamma_phi, self.kappa_phi, self.n_t, self.n_c)
         return params
+
 
 def collapse_operators(params):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
     c_ops = []
-    c_ops.append(np.sqrt(params.kappa*(params.n_c+1)) * a)
-    c_ops.append(np.sqrt(params.kappa*params.n_c) * a.dag())
-    c_ops.append(np.sqrt(params.gamma*(params.n_t+1)) * sm)
-    c_ops.append(np.sqrt(params.gamma*params.n_t) * sm.dag())
-    #dispersion_op = dispersion_op_gen(params)
-    dispersion_op = sm.dag()*sm
-    c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
+    c_ops.append(np.sqrt(params.kappa * (params.n_c + 1)) * a)
+    c_ops.append(np.sqrt(params.kappa * params.n_c) * a.dag())
+    c_ops.append(np.sqrt(params.gamma * (params.n_t + 1)) * sm)
+    c_ops.append(np.sqrt(params.gamma * params.n_t) * sm.dag())
+    # dispersion_op = dispersion_op_gen(params)
+    dispersion_op = sm.dag() * sm
+    c_ops.append(np.sqrt(params.gamma_phi) * dispersion_op)
     return c_ops
 
+
 def charge_dispersion_calc(level, Ec, Ej):
-    dispersion = (-1)**level * Ec * 2**(4*level+5) * np.sqrt(2.0/np.pi) * (Ej/(2*Ec))**(level/2.0+3/4.0) * np.exp(-np.sqrt(8*Ej/Ec))
+    dispersion = (-1) ** level * Ec * 2 ** (4 * level + 5) * np.sqrt(2.0 / np.pi) * (Ej / (2 * Ec)) ** (
+                level / 2.0 + 3 / 4.0) * np.exp(-np.sqrt(8 * Ej / Ec))
     dispersion /= factorial(level)
     return dispersion
+
 
 def dispersion_op_gen(params):
     Ec = params.Ec
     Ej = params.Ej
-    normalization = charge_dispersion_calc(1,Ec,Ej) - charge_dispersion_calc(0,Ec,Ej)
+    normalization = charge_dispersion_calc(1, Ec, Ej) - charge_dispersion_calc(0, Ec, Ej)
     dispersion_op = 0
     for i in range(params.t_levels):
-        dispersion_op += fock_dm(params.t_levels, i)*charge_dispersion_calc(i,Ec,Ej)
+        dispersion_op += fock_dm(params.t_levels, i) * charge_dispersion_calc(i, Ec, Ej)
     dispersion_op /= normalization
     dispersion_op = tensor(qeye(params.c_levels), dispersion_op)
     return dispersion_op
 
+
 def local_maxima(array):
     truth_array = np.r_[True, array[1:] > array[:-1]] & np.r_[array[:-1] > array[1:], True]
-    indices = np.argwhere(truth_array)[:,0]
+    indices = np.argwhere(truth_array)[:, 0]
     return indices
+
 
 class Results:
     def __init__(self, params=np.array([]), fd_points=np.array([]),
@@ -147,15 +162,17 @@ class Results:
         transmissions_change = (reduced_transmissions == self.transmissions)
         edge_occupations_c_change = (reduced_edge_occupations_c == self.edge_occupations_c)
         edge_occupations_t_change = (reduced_edge_occupations_t == self.edge_occupations_t)
-        print np.all([params_change, fd_points_change, transmissions_change, edge_occupations_c_change, edge_occupations_t_change])
+        print np.all([params_change, fd_points_change, transmissions_change, edge_occupations_c_change,
+                      edge_occupations_t_change])
         return reduced_results
 
     def queue(self):
         queue = Queue(self.params, self.fd_points)
         return queue
 
+
 class Queue:
-    def __init__(self, params = np.array([]), fd_points = np.array([])):
+    def __init__(self, params=np.array([]), fd_points=np.array([])):
         self.params = params
         self.fd_points = fd_points
         self.size = self.fd_points.size
@@ -163,7 +180,7 @@ class Queue:
         self.fd_points = self.fd_points[sort_indices]
         self.params = self.params[sort_indices]
 
-    def curvature_generate(self, results, threshold = 0.05):
+    def curvature_generate(self, results, threshold=0.05):
         curvature_info = CurvatureInfo(results, threshold)
         self.fd_points = curvature_info.new_points()
         self.params = hilbert_interpolation(self.fd_points, results)
@@ -241,11 +258,11 @@ class Queue:
 
 
 class CurvatureInfo:
-    def __init__(self, results, threshold = 0.05):
+    def __init__(self, results, threshold=0.05):
         self.threshold = threshold
-        self.fd_points = results.fd_points
+        self.fd_points = results['fd_points'].values
         self.new_fd_points_unique = None
-        self.abs_transmissions = results.abs_transmissions
+        self.abs_transmissions = np.abs(results['transmissions'].values)
         self.n_points = self.abs_transmissions.size
 
     def new_points(self):
@@ -262,6 +279,8 @@ class CurvatureInfo:
         self.intervals = np.diff(self.fd_points)
         self.num_of_sections_required = \
             np.ceil(self.intervals * np.sqrt(self.midpoint_curvatures_normed / self.threshold))
+        mask = self.num_of_sections_required > 0
+        self.num_of_sections_required *= mask
         new_fd_points = np.array([])
         for index in np.arange(self.n_points - 1):
             multi_section = \
@@ -278,6 +297,7 @@ def size_suggestion(edge_occupation, size, threshold):
     new_size = int(np.ceil(new_size))
     return new_size
 
+
 def size_correction(edge_occupation, size, threshold):
     beta_estimate = np.log(1 + 1 / edge_occupation) / size
     beta = fsolve(zero_func, beta_estimate, args=(edge_occupation, size - 1, size))
@@ -285,23 +305,26 @@ def size_correction(edge_occupation, size, threshold):
     new_size = int(np.ceil(new_size))
     return new_size
 
+
 def exponential_occupation(n, beta, size):
     factor = np.exp(-beta)
     f = np.power(factor, n) * (1 - factor) / (1 - np.power(factor, size))
     return f
+
 
 def zero_func(beta, p, level, size):
     f = exponential_occupation(level, beta, size)
     f = f - p
     return f
 
+
 def hilbert_interpolation(new_fd_points, results):
-    c_levels_array = np.array([params.c_levels for params in results.params])
-    t_levels_array = np.array([params.t_levels for params in results.params])
+    c_levels_array = np.array([params.c_levels for params in results['params']])
+    t_levels_array = np.array([params.t_levels for params in results['params']])
     fd_points = results.fd_points
     c_interp = interp1d(fd_points, c_levels_array)
     t_interp = interp1d(fd_points, t_levels_array)
-    base_params = results.params[0]
+    base_params = results['params'].iloc[0]
     params_list = []
     for fd in new_fd_points:
         new_params = base_params.copy()
@@ -311,12 +334,14 @@ def hilbert_interpolation(new_fd_points, results):
     params_array = np.array(params_list)
     return params_array
 
+
 def moving_average(interval, window_size):
     window = np.ones(int(window_size)) / float(window_size)
     averages = np.convolve(interval, window, 'same')
-    return averages[window_size - 1 : averages.size]
+    return averages[window_size - 1: averages.size]
 
-def derivative(x, y, n_derivative = 1):
+
+def derivative(x, y, n_derivative=1):
     derivatives = np.zeros(y.size - 1)
     positions = np.zeros(x.size - 1)
     for index in np.arange(y.size - 1):
@@ -329,29 +354,32 @@ def derivative(x, y, n_derivative = 1):
         positions, derivatives = derivative(positions, derivatives, n_derivative - 1)
     return positions, derivatives
 
+
 def transmon_energies_calc(params):
     Ec = params.Ec
     Ej = params.Ej
-    q = -Ej/(2*Ec)
+    q = -Ej / (2 * Ec)
     n_levels = params.t_levels
-    n_even = n_levels//2 + n_levels%2
-    n_odd = n_levels//2
-    even_levels = np.arange(0,2*n_even,2)
-    odd_levels = np.arange(2,2*(n_odd+1),2)
-    even_energies = Ec*special.mathieu_a(even_levels,q)
-    odd_energies = Ec*special.mathieu_b(odd_levels,q)
-    energies = np.hstack([even_energies,odd_energies])
+    n_even = n_levels // 2 + n_levels % 2
+    n_odd = n_levels // 2
+    even_levels = np.arange(0, 2 * n_even, 2)
+    odd_levels = np.arange(2, 2 * (n_odd + 1), 2)
+    even_energies = Ec * special.mathieu_a(even_levels, q)
+    odd_energies = Ec * special.mathieu_b(odd_levels, q)
+    energies = np.hstack([even_energies, odd_energies])
     sorted_energies = np.sort(energies)
     sorted_energies -= sorted_energies[0]
     return sorted_energies
+
 
 def transmon_hamiltonian_gen(params):
     energies = transmon_energies_calc(params)
     transmon_hamiltonian = 0
     for n, energy in enumerate(energies):
-        transmon_hamiltonian += (energy-n*params.fd)*fock_dm(params.t_levels, n)
+        transmon_hamiltonian += (energy - n * params.fd) * fock_dm(params.t_levels, n)
     transmon_hamiltonian = tensor(qeye(params.c_levels), transmon_hamiltonian)
     return transmon_hamiltonian
+
 
 def overlap_func(theta, i, j, params):
     q = -params.Ej / (2 * params.Ec)
@@ -367,21 +395,24 @@ def overlap_func(theta, i, j, params):
 
     return overlap_point
 
+
 def coupling_calc(i, j, params):
     coupling, error = scipy.integrate.quad(overlap_func, 0, np.pi, args=(i, j, params))
     return np.abs(coupling)
 
+
 coupling_vec_calc = np.vectorize(coupling_calc)
 
+
 def coupling_hamiltonian_gen(params):
-    lower_levels = np.arange(0,params.t_levels-1)
-    upper_levels = np.arange(1,params.t_levels)
-    coupling_array = coupling_vec_calc(lower_levels,upper_levels,params)
-    coupling_array = coupling_array/coupling_array[0]
+    lower_levels = np.arange(0, params.t_levels - 1)
+    upper_levels = np.arange(1, params.t_levels)
+    coupling_array = coupling_vec_calc(lower_levels, upper_levels, params)
+    coupling_array = coupling_array / coupling_array[0]
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     down_transmon_transitions = 0
     for i, coupling in enumerate(coupling_array):
-        down_transmon_transitions += coupling*basis(params.t_levels,i)*basis(params.t_levels,i+1).dag()
+        down_transmon_transitions += coupling * basis(params.t_levels, i) * basis(params.t_levels, i + 1).dag()
     down_transmon_transitions = tensor(qeye(params.c_levels), down_transmon_transitions)
     down_transmon_transitions *= a.dag()
     coupling_hamiltonian = down_transmon_transitions + down_transmon_transitions.dag()
@@ -397,25 +428,86 @@ def hamiltonian(params):
     return H
 
 
-def transmission_calc_array(queue):
+def transmission_calc_array(queue, results):
     args = []
     for index, value in enumerate(queue.fd_points):
         args.append([value, queue.params[index]])
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in args:
-        steady_states.append(transmission_calc(arg))
+        steady_states.append(transmission_calc(arg, results))
     transmissions = np.array([steady_state[0] for steady_state in steady_states])
     edge_occupations_c = np.array([steady_state[1] for steady_state in steady_states])
     edge_occupations_c = np.absolute(edge_occupations_c)
     edge_occupations_t = np.array([steady_state[2] for steady_state in steady_states])
     edge_occupations_t = np.absolute(edge_occupations_t)
-    results = Results(queue.params, queue.fd_points, transmissions, edge_occupations_c, edge_occupations_t)
-    abs_transmissions = np.absolute(transmissions)
+    states = np.array([steady_state[3] for steady_state in steady_states])
+    # results = Results(queue.params, queue.fd_points, transmissions, edge_occupations_c, edge_occupations_t)
+    # abs_transmissions = np.absolute(transmissions)
+    results = pd.DataFrame(
+        [queue.params, queue.fd_points, transmissions, edge_occupations_c, edge_occupations_t, states]).T
+    results.columns = ['params', 'fd_points', 'transmissions', 'edge_occupations_c', 'edge_occupations_t', 'states']
+    dtypes = {'params': object, 'fd_points': np.float64, 'transmissions': np.complex, 'edge_occupations_c': np.float64,
+              'edge_occupations_t': np.float64, 'states': object}
+    results = results.astype(dtypes)
     return results
 
 
-def transmission_calc(args):
+def steadystate_custom(H, c_ops, initial):
+    L = liouvillian(H, c_ops)
+
+    data = L.data
+    csc = data.tocsc()
+
+    if initial is None:
+        eigenvector = None
+    else:
+        eigenvector = operator_to_vector(initial).data.todense()
+
+    values, vectors = lin.eigs(csc, k=5, sigma=0.0, v0=eigenvector)
+    sort_indices = np.argsort(np.abs(values))
+    values = values[sort_indices]
+    states = vectors[:, sort_indices]
+
+    rho_ss_vector = Qobj(states[:, 0])
+
+    rho_ss = vector_to_operator(rho_ss_vector)
+
+    rho_ss.dims = H.dims
+
+    return rho_ss
+
+
+def transmission_calc(args, results, custom=True):
+    fd = args[0]
+    params = args[1]
+    a = tensor(destroy(params.c_levels), qeye(params.t_levels))
+    sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
+    c_ops = collapse_operators(params)
+    params.fd = fd
+    H = hamiltonian(params)
+
+    if custom:
+        if results.shape[0] == 0:
+            initial = None
+        else:
+            idx_min = np.argmin(np.abs(results['fd_points'] - fd))
+            initial = results['states'].iloc[idx_min]
+        rho_ss = steadystate_custom(H, c_ops, initial)
+    else:
+        rho_ss = steadystate(H, c_ops)
+
+    rho_c_ss = rho_ss.ptrace(0)
+    rho_t_ss = rho_ss.ptrace(1)
+    c_occupations = rho_c_ss.diag()
+    t_occupations = rho_t_ss.diag()
+    edge_occupation_c = c_occupations[params.c_levels - 1]
+    edge_occupation_t = t_occupations[params.t_levels - 1]
+    transmission = expect(a, rho_ss)
+    return np.array([transmission, edge_occupation_c, edge_occupation_t, rho_ss])
+
+
+def transmission_calc_old(args, results):
     fd = args[0]
     params = args[1]
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
@@ -440,13 +532,13 @@ def sweep(eps, fd_lower, fd_upper, params, threshold):
     params_array = np.array([params.copy() for fd in fd_points])
     queue = Queue(params_array, fd_points)
     curvature_iterations = 0
-    results = Results()
+    results = pd.DataFrame()
 
     while (queue.size > 0) and (curvature_iterations < 3):
         print curvature_iterations
         curvature_iterations = curvature_iterations + 1
-        new_results = transmission_calc_array(queue)
-        results = results.concatenate(new_results)
+        new_results = transmission_calc_array(queue, results)
+        results = pd.concat([results, new_results])
         queue.curvature_generate(results, threshold)
     c_levels = [params_instance.c_levels for params_instance in results.params]
     t_levels = [params_instance.t_levels for params_instance in results.params]
@@ -458,7 +550,7 @@ def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold):
 
     for eps in eps_array:
         multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold)
-        params = multi_results_dict[eps].params[0]
+        params = multi_results_dict[eps]['params'].iloc[0]
         print params.c_levels
         print params.t_levels
 
@@ -466,7 +558,6 @@ def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold):
 
 
 def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
-
     threshold = 0.001
     eps = params.eps
     eps_array = np.array([eps])
@@ -479,12 +570,15 @@ def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
     collected_data_abs = None
     results_list = []
     for sweep in multi_results.values():
-        for i, fd in enumerate(sweep.fd_points):
-            transmission = sweep.transmissions[i]
-            p = sweep.params[i]
-            coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
-            coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
-            coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+        for i, fd in enumerate(sweep['fd_points'].values):
+            transmission = sweep['transmissions'].iloc[i]
+            p = sweep['params'].iloc[i]
+            coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi],
+                              [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi],
+                              [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi],
+                               [p.Ec], [p.n_t], [p.n_c]]
             point = np.array([transmission])
             abs_point = np.array([np.abs(transmission)])
 
@@ -541,10 +635,9 @@ def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
             split = f_12 - f_r
 
     if display:
-        fig, axes = plt.subplots(1,1)
+        fig, axes = plt.subplots(1, 1)
         a_abs.plot(ax=axes)
         plt.show()
-
 
         """ 
         fig, axes = plt.subplots(1, 1)
@@ -587,15 +680,14 @@ def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
 
     """
 
-    #new_fq = params.fq + 9.19324 - f_r_est.values[()]
+    # new_fq = params.fq + 9.19324 - f_r_est.values[()]
     # new_chi = (2*params.chi - split - 0.20356)/2
-    #new_chi = -0.20356 * params.chi / split
+    # new_chi = -0.20356 * params.chi / split
 
     return f_r, split
 
 
 def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
-
     threshold = 0.0005
 
     eps = params.eps
@@ -610,12 +702,15 @@ def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
     collected_data_abs = None
     results_list = []
     for sweep in multi_results.values():
-        for i, fd in enumerate(sweep.fd_points):
-            transmission = sweep.transmissions[i]
-            p = sweep.params[i]
-            coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
-            coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
-            coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+        for i, fd in enumerate(sweep['fd_points'].values):
+            transmission = sweep['transmissions'].iloc[i]
+            p = sweep['params'].iloc[i]
+            coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi],
+                              [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi],
+                              [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi],
+                               [p.Ec], [p.n_t], [p.n_c]]
             point = np.array([transmission])
             abs_point = np.array([np.abs(transmission)])
 
@@ -669,12 +764,12 @@ def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
     max_idx = np.argmax(a_abs).values[()]
     A_est = a_abs[max_idx]
     f_r_est = a_abs.f_d[max_idx]
-    #popt, pcov = curve_fit(lorentzian_func, a_abs.f_d, a_abs.values, p0=[A_est, f_r_est, 0.001])
+    # popt, pcov = curve_fit(lorentzian_func, a_abs.f_d, a_abs.values, p0=[A_est, f_r_est, 0.001])
     popt, pcov = lorentzian_fit(a_abs.f_d.values[()], a_abs.values[()])
     Q_factor = popt[2]
 
     if display:
-        fig, axes = plt.subplots(1,1)
+        fig, axes = plt.subplots(1, 1)
         a_abs.plot(ax=axes)
         plt.show()
 
@@ -714,8 +809,8 @@ def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
 
     """
 
-    #fc_new = params.fc + 10.49602 - popt[1]
-    #g_new = params.g * np.sqrt(23.8 * 1000 / split) / 1000
-    #kappa_new = Q_factor * params.kappa / 8700
+    # fc_new = params.fc + 10.49602 - popt[1]
+    # g_new = params.g * np.sqrt(23.8 * 1000 / split) / 1000
+    # kappa_new = Q_factor * params.kappa / 8700
 
     return popt[1], split, Q_factor
