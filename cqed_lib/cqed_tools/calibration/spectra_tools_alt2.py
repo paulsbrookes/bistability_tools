@@ -295,6 +295,7 @@ def steadystate_custom(H, c_ops, initial):
     rho_ss = vector_to_operator(rho_ss_vector)
 
     rho_ss.dims = H.dims
+    rho_ss /= rho_ss.tr()
 
     return rho_ss
 
