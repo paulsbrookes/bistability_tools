@@ -380,7 +380,7 @@ def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold):
 
 
 def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
-    threshold = 0.001
+    threshold = 0.01
     eps = params.eps
     eps_array = np.array([eps])
     multi_results = multi_sweep(eps_array, fd_lower, fd_upper, params, threshold)
