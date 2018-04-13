@@ -4,3 +4,4 @@ from .spectrum_calc import *
 from .liouvillian_sim import *
 from .liouvillian_sim_alt import *
 from .gsl import *
+from .hamiltonian import *

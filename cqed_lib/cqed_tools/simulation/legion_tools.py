@@ -13,6 +13,7 @@ import pickle
 import matplotlib.pyplot as plt
 #import pygsl.testing.sf as sf
 from .gsl import *
+from .hamiltonian import *
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
