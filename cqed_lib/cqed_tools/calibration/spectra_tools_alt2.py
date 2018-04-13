@@ -280,12 +280,15 @@ def steadystate_custom(H, c_ops, initial):
     data = L.data
     csc = data.tocsc()
 
+    initial = None
+    print('no initial')
+
     if initial is None:
         eigenvector = None
     else:
         eigenvector = operator_to_vector(initial).data.todense()
 
-    values, vectors = lin.eigs(csc, k=5, sigma=0.0, v0=eigenvector)
+    values, vectors = lin.eigs(csc, k=1, sigma=0.0, v0=eigenvector)
     sort_indices = np.argsort(np.abs(values))
     values = values[sort_indices]
     states = vectors[:, sort_indices]
