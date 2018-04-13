@@ -280,9 +280,6 @@ def steadystate_custom(H, c_ops, initial):
     data = L.data
     csc = data.tocsc()
 
-    initial = None
-    print('no initial')
-
     if initial is None:
         eigenvector = None
     else:
