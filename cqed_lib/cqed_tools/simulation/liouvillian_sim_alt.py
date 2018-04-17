@@ -58,6 +58,11 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     states = pd.DataFrame(states)
     values.to_csv('eigenvalues.csv',index=False)
 
+    values.index = mi
+    os.chdir(stack_directory)
+    values.to_hdf('results.h5',key='eigenvalues',append=True,format='table',mode='a')
+
+
     attempts = 0
     written = False
     while not written and attempts < 3:
@@ -78,7 +83,5 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     chosen_index = pruned_values.index[np.argmin(np.abs(pruned_values).values)]
 
     os.chdir(cwd)
-
-    print('howland')
 
     return values.values[chosen_index,0], states.values[:,chosen_index]
