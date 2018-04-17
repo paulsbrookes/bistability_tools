@@ -48,16 +48,29 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
             eigenstate = None
             eigenvalue = default_eigenvalue
 
-    values, states = lin.eigs(csc, k=10, sigma=eigenvalue, v0=eigenstate)
+    k = 10
+    values, states = lin.eigs(csc, k=k, sigma=eigenvalue, v0=eigenstate)
     sort_indices = np.argsort(np.abs(values))
     values = values[sort_indices]
     states = states[:,sort_indices]
-    mi = pd.MultiIndex.from_tuples((frame_params.values[:],), names=frame_params.index)
+    #mi = pd.MultiIndex.from_tuples((frame_params.values[:],), names=frame_params.index)
+
     values = pd.DataFrame(values)
     values.columns = ['eigenvalues']
     states = pd.DataFrame(states)
     values.to_csv('eigenvalues.csv',index=False)
 
+
+    tuples = []
+    arrays = []
+    for i in range(k):
+        indices = list(frame_params.values)
+        indices.append(i)
+        tuples.append(tuple(indices))
+        arrays.append(indices)
+    names = list(frame_params.index)
+    names.append('index')
+    mi = pd.MultiIndex.from_tuples(tuples, names=names)
     values.index = mi
     os.chdir(stack_directory)
     values.to_hdf('results.h5',key='eigenvalues',append=True,format='table',mode='a')
