@@ -3,16 +3,23 @@ import scipy.sparse.linalg as lin
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 import h5py
 
+
 def hdf_append(path,data,key):
     if os.path.exists(path):
         f = h5py.File(path, 'r')
-        if key in f.keys():
-            f.close()
-            loaded = pd.read_hdf(path,key=key)
+        keys = f.keys()
+        f.close()
+    else:
+        keys = []
+
+    if key in keys:
+        loaded = pd.read_hdf(path,key=key)
     else:
         loaded = pd.DataFrame()
+
     combined = loaded.append(data)
     combined.to_hdf(path,key=key,mode='a')
+
 
 def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None, eigenstate=None):
 
