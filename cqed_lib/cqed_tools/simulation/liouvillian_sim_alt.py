@@ -1,5 +1,6 @@
 from .legion_tools import *
 import scipy.sparse.linalg as lin
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 
 def hdf_append(path,data,key):
     if os.path.exists(path):
