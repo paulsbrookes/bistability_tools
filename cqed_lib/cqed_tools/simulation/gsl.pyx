@@ -1,11 +1,3 @@
-cdef extern from "gsl/gsl_sf_legendre.h":
-  double gsl_sf_legendre_P1(double x)
-
-
-cdef extern from "math.h":
-    double sin(double x)
-
-
 cdef extern from "gsl/gsl_sf_result.h":
   ctypedef struct gsl_sf_result:
     double val

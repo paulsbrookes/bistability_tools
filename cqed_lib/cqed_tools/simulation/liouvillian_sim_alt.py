@@ -71,9 +71,18 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     names = list(frame_params.index)
     names.append('index')
     mi = pd.MultiIndex.from_tuples(tuples, names=names)
-    values.index = mi
+    #values.index = mi
+    saving = values.copy()
+    saving.index = mi
     os.chdir(stack_directory)
-    values.to_hdf('results.h5',key='eigenvalues',append=True,format='table',mode='a')
+    print('saving results.h5')
+    if os.path.exists('results.h5'):
+        loaded = pd.read_hdf('results.h5',key='eigenvalues')
+    else:
+        loaded = pd.DataFrame()
+    combined = loaded.append(saving)
+    combined.to_hdf('results.h5',key='eigenvalues')
+    #values.to_hdf('results.h5',key='eigenvalues',append=True,format='table',mode='a')
 
 
     attempts = 0
