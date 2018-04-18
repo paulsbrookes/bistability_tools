@@ -1,6 +1,14 @@
 from .legion_tools import *
 import scipy.sparse.linalg as lin
 
+def hdf_append(path,data,key):
+    if os.path.exists(path):
+        loaded = pd.read_hdf(path,key=key)
+    else:
+        loaded= pd.DataFrame()
+    combined = loaded.append(data)
+    combined.to_hdf(path,key=key,mode='a')
+
 def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None, eigenstate=None):
 
     default_eigenvalue = 0
@@ -81,8 +89,29 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     else:
         loaded = pd.DataFrame()
     combined = loaded.append(saving)
-    combined.to_hdf('results.h5',key='eigenvalues')
+    combined.to_hdf('results.h5',key='eigenvalues',mode='a')
     #values.to_hdf('results.h5',key='eigenvalues',append=True,format='table',mode='a')
+
+    n = packaged_params.t_levels * packaged_params.c_levels
+    dims = [packaged_params.c_levels, packaged_params.t_levels]
+    ground_state_vector = states.values[:, 0]
+    data = dense2D_to_fastcsr_fmode(np.asfortranarray(vec2mat(ground_state_vector)), n, n)
+    rho = Qobj(data, dims=[dims, dims], isherm=True)
+    rho = rho + rho.dag()
+    rho /= rho.tr()
+
+    a = tensor(destroy(packaged_params.c_levels), qeye(packaged_params.t_levels))
+
+    a_exp_point = expect(a, rho)
+    n_exp_point = expect(a.dag() * a, rho)
+    a_exp_point = pd.DataFrame(a_exp_point, index=mi)
+    n_exp_point = pd.DataFrame(n_exp_point, index=mi)
+
+    hdf_append('results.h5', a_exp_point, 'a')
+    hdf_append('results.h5', n_exp_point, 'n')
+
+
+
 
 
     attempts = 0
@@ -107,3 +136,5 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     os.chdir(cwd)
 
     return values.values[chosen_index,0], states.values[:,chosen_index]
+
+
