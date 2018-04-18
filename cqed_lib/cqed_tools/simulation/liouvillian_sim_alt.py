@@ -105,8 +105,8 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
 
     a_exp_point = expect(a, rho)
     n_exp_point = expect(a.dag() * a, rho)
-    a_exp_point = pd.DataFrame(a_exp_point, index=mi)
-    n_exp_point = pd.DataFrame(n_exp_point, index=mi)
+    a_exp_point = pd.DataFrame([a_exp_point], index=mi)
+    n_exp_point = pd.DataFrame([n_exp_point], index=mi)
 
     hdf_append('results.h5', a_exp_point, 'a')
     hdf_append('results.h5', n_exp_point, 'n')
