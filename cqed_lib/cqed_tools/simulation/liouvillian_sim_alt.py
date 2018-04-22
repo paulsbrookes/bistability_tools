@@ -80,6 +80,25 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     states = pd.DataFrame(states)
     values.to_csv('eigenvalues.csv',index=False)
 
+    attempts = 0
+    written = False
+    while not written and attempts < 3:
+        try:
+            states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
+            trial_opening = pd.read_hdf('states.h5')
+            written = True
+        except:
+            attempts += 1
+            print('failed to open')
+
+    if not written:
+        states.iloc[:,0:3].to_csv('states.csv')
+
+    mask = np.abs(values) > 1e-10
+    mask = mask.values[:,0]
+    pruned_values = values.iloc[mask]
+    chosen_index = pruned_values.index[np.argmin(np.abs(pruned_values).values)]
+
 
     tuples = []
     arrays = []
@@ -122,28 +141,6 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     hdf_append('results.h5', a_exp_point, 'a')
     hdf_append('results.h5', n_exp_point, 'n')
 
-
-
-
-
-    attempts = 0
-    written = False
-    while not written and attempts < 3:
-        try:
-            states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
-            trial_opening = pd.read_hdf('states.h5')
-            written = True
-        except:
-            attempts += 1
-            print('failed to open')
-
-    if not written:
-        states.iloc[:,0:3].to_csv('states.csv')
-
-    mask = np.abs(values) > 1e-10
-    mask = mask.values[:,0]
-    pruned_values = values.iloc[mask]
-    chosen_index = pruned_values.index[np.argmin(np.abs(pruned_values).values)]
 
     os.chdir(cwd)
 
