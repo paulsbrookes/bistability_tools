@@ -249,14 +249,14 @@ def derivative(x, y, n_derivative=1):
     return positions, derivatives
 
 
-def transmission_calc_array(queue, results):
+def transmission_calc_array(queue, results, custom):
     args = []
     for index, value in enumerate(queue.fd_points):
         args.append([value, queue.params[index]])
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in args:
-        steady_state = transmission_calc(arg, results)
+        steady_state = transmission_calc(arg, results, custom)
         transmission = steady_state[0]
         edge_occupation_c = steady_state[1]
         edge_occupation_c = np.absolute(edge_occupation_c)
@@ -348,7 +348,7 @@ def transmission_calc_old(args, results):
     return np.array([transmission, edge_occupation_c, edge_occupation_t])
 
 
-def sweep(eps, fd_lower, fd_upper, params, threshold):
+def sweep(eps, fd_lower, fd_upper, params, threshold, custom):
     params.eps = eps
     fd_points = np.linspace(fd_lower, fd_upper, 11)
     params_array = np.array([params.copy() for fd in fd_points])
@@ -359,16 +359,16 @@ def sweep(eps, fd_lower, fd_upper, params, threshold):
     while (queue.size > 0) and (curvature_iterations < 3):
         print curvature_iterations
         curvature_iterations = curvature_iterations + 1
-        results = transmission_calc_array(queue, results)
+        results = transmission_calc_array(queue, results, custom)
         queue.curvature_generate(results, threshold)
     return results
 
 
-def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold):
+def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=True):
     multi_results_dict = dict()
 
     for eps in eps_array:
-        multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold)
+        multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold, custom)
         params = multi_results_dict[eps]['params'].iloc[0]
         print params.c_levels
         print params.t_levels
