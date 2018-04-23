@@ -258,22 +258,24 @@ def transmission_calc_array(queue, results, custom, method='direct'):
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in tqdm(args):
-        print(arg)
-        steady_state = transmission_calc(arg, results, custom=custom, method=method)
-        transmission = steady_state[0]
-        edge_occupation_c = steady_state[1]
-        edge_occupation_c = np.absolute(edge_occupation_c)
-        edge_occupation_t = steady_state[2]
-        edge_occupation_t = np.absolute(edge_occupation_t)
-        state = steady_state[3]
-        new_result = pd.DataFrame(
-            [[arg[1]], [arg[0]], [transmission], [edge_occupation_c], [edge_occupation_t], [state]]).T
-        new_result.columns = ['params', 'fd_points', 'transmissions', 'edge_occupations_c', 'edge_occupations_t', 'states']
-        dtypes = {'params': object, 'fd_points': np.float64, 'transmissions': np.complex, 'edge_occupations_c': np.float64,
-              'edge_occupations_t': np.float64, 'states': object}
-        new_result = new_result.astype(dtypes)
-        results = pd.concat([results,new_result])
-        results = results.sort_values('fd_points')
+        try:
+            steady_state = transmission_calc(arg, results, custom=custom, method=method)
+            transmission = steady_state[0]
+            edge_occupation_c = steady_state[1]
+            edge_occupation_c = np.absolute(edge_occupation_c)
+            edge_occupation_t = steady_state[2]
+            edge_occupation_t = np.absolute(edge_occupation_t)
+            state = steady_state[3]
+            new_result = pd.DataFrame(
+                [[arg[1]], [arg[0]], [transmission], [edge_occupation_c], [edge_occupation_t], [state]]).T
+            new_result.columns = ['params', 'fd_points', 'transmissions', 'edge_occupations_c', 'edge_occupations_t', 'states']
+            dtypes = {'params': object, 'fd_points': np.float64, 'transmissions': np.complex, 'edge_occupations_c': np.float64,
+                  'edge_occupations_t': np.float64, 'states': object}
+            new_result = new_result.astype(dtypes)
+            results = pd.concat([results,new_result])
+            results = results.sort_values('fd_points')
+        except:
+            pass
     return results
 
 
