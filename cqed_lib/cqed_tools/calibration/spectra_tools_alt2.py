@@ -376,8 +376,7 @@ def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=True):
     return multi_results_dict
 
 
-def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False, custom=False):
-    threshold = 0.01
+def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False, custom=False, threshold=0.01):
     eps = params.eps
     eps_array = np.array([eps])
     multi_results = multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=custom)
@@ -506,8 +505,7 @@ def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False, custom=F
     return f_r, split
 
 
-def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False, custom=False):
-    threshold = 0.0005
+def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False, custom=False, threshold=0.0005):
 
     eps = params.eps
     eps_array = np.array([eps])
