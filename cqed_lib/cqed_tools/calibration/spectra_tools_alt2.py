@@ -18,6 +18,8 @@ import scipy.special as special
 import scipy
 import scipy.sparse.linalg as lin
 from ..simulation.hamiltonian import *
+from tqdm import tqdm
+
 
 class SpectrumOptions:
     def __init__(self, fd_lower=10.46, fd_upper=10.52, threshold=0.05, display=False):
