@@ -644,3 +644,10 @@ def lorentzian_fit(x, y):
     f_r_est = x[max_idx]
     popt, pcov = curve_fit(lorentzian_func, x, y, p0=[A_est, f_r_est, Q_est, 0.01])
     return popt, pcov
+
+
+def new_transmon_params(Ej, Ec, f01, alpha, f01_target, alpha_target):
+    Ec_new = Ec + alpha - alpha_target
+    Ej_new = ((np.sqrt(8*Ej*Ec) + Ec_new - Ec)**2) / (8*Ec_new)
+    Ej_new *= ((f01_target+Ec_new)/(f01+Ec_new))**2
+    return Ej_new, Ec_new
