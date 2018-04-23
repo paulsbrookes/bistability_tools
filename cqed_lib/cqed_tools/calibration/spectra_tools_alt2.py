@@ -312,6 +312,7 @@ def transmission_calc(args, results, custom=True, method='direct'):
     params.fd = fd
     H = hamiltonian(params)
 
+    completed = False
     attempts = 0
     while attempts < 3 and completed == False:
         attempts += 1
