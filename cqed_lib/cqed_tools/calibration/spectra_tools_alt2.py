@@ -256,7 +256,7 @@ def transmission_calc_array(queue, results, custom):
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in args:
-        steady_state = transmission_calc(arg, results, custom)
+        steady_state = transmission_calc(arg, results, custom=custom)
         transmission = steady_state[0]
         edge_occupation_c = steady_state[1]
         edge_occupation_c = np.absolute(edge_occupation_c)
@@ -376,11 +376,11 @@ def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=True):
     return multi_results_dict
 
 
-def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
+def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False, custom=False):
     threshold = 0.01
     eps = params.eps
     eps_array = np.array([eps])
-    multi_results = multi_sweep(eps_array, fd_lower, fd_upper, params, threshold)
+    multi_results = multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=custom)
 
     labels = params.labels
 
@@ -782,7 +782,7 @@ def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
     for sweep in multi_results.values():
         for i, fd in enumerate(sweep.fd_points):
             transmission = sweep.transmissions[i]
-            p = sweep.params[i]
+            p = sweep.params.iloc[i]
             coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
             coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
             coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
