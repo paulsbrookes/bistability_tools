@@ -251,14 +251,14 @@ def derivative(x, y, n_derivative=1):
     return positions, derivatives
 
 
-def transmission_calc_array(queue, results, custom):
+def transmission_calc_array(queue, results, custom, method='direct'):
     args = []
     for index, value in enumerate(queue.fd_points):
         args.append([value, queue.params[index]])
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in tqdm(args):
-        steady_state = transmission_calc(arg, results, custom=custom)
+        steady_state = transmission_calc(arg, results, custom=custom, method=method)
         transmission = steady_state[0]
         edge_occupation_c = steady_state[1]
         edge_occupation_c = np.absolute(edge_occupation_c)
@@ -302,7 +302,7 @@ def steadystate_custom(H, c_ops, initial):
     return rho_ss
 
 
-def transmission_calc(args, results, custom=True):
+def transmission_calc(args, results, custom=True, method='direct'):
     fd = args[0]
     params = args[1]
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
@@ -319,7 +319,7 @@ def transmission_calc(args, results, custom=True):
             initial = results['states'].iloc[idx_min]
         rho_ss = steadystate_custom(H, c_ops, initial)
     else:
-        rho_ss = steadystate(H, c_ops)
+        rho_ss = steadystate(H, c_ops, method=method)
 
     rho_c_ss = rho_ss.ptrace(0)
     rho_t_ss = rho_ss.ptrace(1)
@@ -350,7 +350,7 @@ def transmission_calc_old(args, results):
     return np.array([transmission, edge_occupation_c, edge_occupation_t])
 
 
-def sweep(eps, fd_lower, fd_upper, params, threshold, custom):
+def sweep(eps, fd_lower, fd_upper, params, threshold, custom, method='direct'):
     params.eps = eps
     fd_points = np.linspace(fd_lower, fd_upper, 11)
     params_array = np.array([params.copy() for fd in fd_points])
@@ -361,16 +361,16 @@ def sweep(eps, fd_lower, fd_upper, params, threshold, custom):
     while (queue.size > 0) and (curvature_iterations < 3):
         print curvature_iterations
         curvature_iterations = curvature_iterations + 1
-        results = transmission_calc_array(queue, results, custom)
+        results = transmission_calc_array(queue, results, custom, method=method)
         queue.curvature_generate(results, threshold)
     return results
 
 
-def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=True):
+def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=True, method='direct'):
     multi_results_dict = dict()
 
     for eps in eps_array:
-        multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold, custom)
+        multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold, custom, method)
         params = multi_results_dict[eps]['params'].iloc[0]
         print params.c_levels
         print params.t_levels
