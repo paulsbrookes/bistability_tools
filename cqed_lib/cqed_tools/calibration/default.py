@@ -9,7 +9,7 @@ class DefaultParameters(Parameters):
         eps = 0.0
         gamma = 0.0
         gamma_phi = 0.0
-        kappa = 0.0008
+        kappa = 0.001
         kappa_phi = 0.0
         n_c = 0.037
         n_t = 0.0
