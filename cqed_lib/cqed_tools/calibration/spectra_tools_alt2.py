@@ -633,3 +633,272 @@ def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
     # kappa_new = Q_factor * params.kappa / 8700
 
     return popt[1], split, Q_factor
+
+
+def qubit_iteration(params, fd_lower=8.9, fd_upper=9.25, display=False):
+
+    threshold = 0.001
+    eps = params.eps
+    eps_array = np.array([eps])
+    multi_results = multi_sweep(eps_array, fd_lower, fd_upper, params, threshold)
+
+    labels = params.labels
+
+    collected_data_re = None
+    collected_data_im = None
+    collected_data_abs = None
+    results_list = []
+    for sweep in multi_results.values():
+        for i, fd in enumerate(sweep.fd_points):
+            transmission = sweep.transmissions[i]
+            p = sweep.params[i]
+            coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+            point = np.array([transmission])
+            abs_point = np.array([np.abs(transmission)])
+
+            for j in range(len(coordinates_re) - 1):
+                point = point[np.newaxis]
+                abs_point = abs_point[np.newaxis]
+
+            hilbert_dict = OrderedDict()
+            hilbert_dict['t_levels'] = p.t_levels
+            hilbert_dict['c_levels'] = p.c_levels
+            packaged_point_re = xr.DataArray(point, coords=coordinates_re, dims=labels, attrs=hilbert_dict)
+            packaged_point_im = xr.DataArray(point, coords=coordinates_im, dims=labels, attrs=hilbert_dict)
+            packaged_point_abs = xr.DataArray(abs_point, coords=coordinates_abs, dims=labels, attrs=hilbert_dict)
+            packaged_point_re = packaged_point_re.real
+            packaged_point_im = packaged_point_im.imag
+
+            if collected_data_re is not None:
+                collected_data_re = collected_data_re.combine_first(packaged_point_re)
+            else:
+                collected_data_re = packaged_point_re
+
+            if collected_data_im is not None:
+                collected_data_im = collected_data_im.combine_first(packaged_point_im)
+            else:
+                collected_data_im = packaged_point_im
+
+            if collected_data_abs is not None:
+                collected_data_abs = collected_data_abs.combine_first(packaged_point_abs)
+            else:
+                collected_data_abs = packaged_point_abs
+
+    a_abs = collected_data_abs.squeeze()
+
+    if True:
+
+        max_indices = local_maxima(a_abs.values[()])
+        maxima = a_abs.values[max_indices]
+        indices_order = np.argsort(maxima)
+
+        max_idx = np.argmax(a_abs).values[()]
+        A_est = a_abs[max_idx]
+        f_r_est = a_abs.f_d[max_idx]
+        popt, pcov = lorentzian_fit(a_abs.f_d.values[()], a_abs.values[()])
+        f_r = popt[1]
+
+        two_peaks = False
+        split = None
+        if len(max_indices) >= 2:
+            two_peaks = True
+            max_indices = max_indices[indices_order[-2:]]
+
+            f_01 = a_abs.f_d[max_indices[1]].values[()]
+            f_12 = a_abs.f_d[max_indices[0]].values[()]
+            split = f_12 - f_r
+
+    if display:
+        fig, axes = plt.subplots(1,1)
+        a_abs.plot(ax=axes)
+        plt.show()
+
+
+        """ 
+        fig, axes = plt.subplots(1, 1)
+        xlim = axes.get_xlim()
+        ylim = axes.get_ylim()
+        xloc = xlim[0] + 0.1*(xlim[1]-xlim[0])
+        yloc = ylim[1] - 0.1*(ylim[1]-ylim[0])
+
+        collected_data_abs.plot(ax=axes)
+        axes.plot(a_abs.f_d, lorentzian_func(a_abs.f_d, *popt), 'g--')
+        print "Resonance frequency = " + str(popt[1]) + " GHz"
+        print "Q factor = " + str(Q_factor)
+        plt.title(str(p.t_levels) + str(' ') + str(p.c_levels))
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=1)
+        if two_peaks == True:
+            textstr = '$f_{01}$ = ' + str(f_01) + 'GHz\n' + r'$\alpha$ = ' + str(1000*split) + 'MHz\n$Q$ = ' + str(Q_factor) + '\n$FWHM$ = ' + str(1000*params.kappa) + 'MHz'
+        else:
+            #textstr = 'fail'
+            textstr = '$f_{01}$ = ' + str(f_r_est.values[()]) + 'GHz\n$Q$ = ' + str(
+                Q_factor) + '\n$FWHM$ = ' + str(1000 * params.kappa) + 'MHz'
+
+        #textstr = '$f_{01}$ = ' + str(f_01) + 'GHz\n' + r'$\alpha$ = ' + str(split) + 'GHz'
+        label = axes.text(xloc, yloc, textstr, fontsize=14, verticalalignment='top', bbox=props)
+
+    plt.show()
+
+    collected_dataset = xr.Dataset({'a_re': collected_data_re,
+                                    'a_im': collected_data_im,
+                                    'a_abs': collected_data_abs})
+
+    time = datetime.now()
+    cwd = os.getcwd()
+    time_string = time.strftime('%Y-%m-%d--%H-%M-%S')
+
+    directory = cwd + '/eps=' + str(eps) + 'GHz' + '/' + time_string
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        collected_dataset.to_netcdf(directory+'/spectrum.nc')
+
+    """
+
+    #new_fq = params.fq + 9.19324 - f_r_est.values[()]
+    # new_chi = (2*params.chi - split - 0.20356)/2
+    #new_chi = -0.20356 * params.chi / split
+
+    return f_r, split
+
+
+def cavity_iteration(params, fd_lower=10.47, fd_upper=10.51, display=False):
+
+    threshold = 0.0005
+
+    eps = params.eps
+    eps_array = np.array([eps])
+
+    multi_results = multi_sweep(eps_array, fd_lower, fd_upper, params, threshold)
+
+    labels = params.labels
+
+    collected_data_re = None
+    collected_data_im = None
+    collected_data_abs = None
+    results_list = []
+    for sweep in multi_results.values():
+        for i, fd in enumerate(sweep.fd_points):
+            transmission = sweep.transmissions[i]
+            p = sweep.params[i]
+            coordinates_re = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_im = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+            coordinates_abs = [[fd], [p.eps], [p.Ej], [p.fc], [p.g], [p.kappa], [p.kappa_phi], [p.gamma], [p.gamma_phi], [p.Ec], [p.n_t], [p.n_c]]
+            point = np.array([transmission])
+            abs_point = np.array([np.abs(transmission)])
+
+            for j in range(len(coordinates_re) - 1):
+                point = point[np.newaxis]
+                abs_point = abs_point[np.newaxis]
+
+            hilbert_dict = OrderedDict()
+            hilbert_dict['t_levels'] = p.t_levels
+            hilbert_dict['c_levels'] = p.c_levels
+            packaged_point_re = xr.DataArray(point, coords=coordinates_re, dims=labels, attrs=hilbert_dict)
+            packaged_point_im = xr.DataArray(point, coords=coordinates_im, dims=labels, attrs=hilbert_dict)
+            packaged_point_abs = xr.DataArray(abs_point, coords=coordinates_abs, dims=labels, attrs=hilbert_dict)
+            packaged_point_re = packaged_point_re.real
+            packaged_point_im = packaged_point_im.imag
+
+            if collected_data_re is not None:
+                collected_data_re = collected_data_re.combine_first(packaged_point_re)
+            else:
+                collected_data_re = packaged_point_re
+
+            if collected_data_im is not None:
+                collected_data_im = collected_data_im.combine_first(packaged_point_im)
+            else:
+                collected_data_im = packaged_point_im
+
+            if collected_data_abs is not None:
+                collected_data_abs = collected_data_abs.combine_first(packaged_point_abs)
+            else:
+                collected_data_abs = packaged_point_abs
+
+    a_abs = collected_data_abs.squeeze()
+
+    max_indices = local_maxima(a_abs.values[()])
+    maxima = a_abs.values[max_indices]
+    indices_order = np.argsort(maxima)
+
+    two_peaks = False
+    if len(max_indices) == 2:
+        two_peaks = True
+
+        max_indices = max_indices[indices_order[-2:]]
+
+        f_r = a_abs.f_d[max_indices[1]].values[()]
+        f_r_2 = a_abs.f_d[max_indices[0]].values[()]
+        split = f_r - f_r_2
+
+        ratio = a_abs[max_indices[1]] / a_abs[max_indices[0]]
+        ratio = ratio.values[()]
+
+    max_idx = np.argmax(a_abs).values[()]
+    A_est = a_abs[max_idx]
+    f_r_est = a_abs.f_d[max_idx]
+    #popt, pcov = curve_fit(lorentzian_func, a_abs.f_d, a_abs.values, p0=[A_est, f_r_est, 0.001])
+    popt, pcov = lorentzian_fit(a_abs.f_d.values[()], a_abs.values[()])
+    Q_factor = popt[2]
+
+    if display:
+        fig, axes = plt.subplots(1,1)
+        a_abs.plot(ax=axes)
+        plt.show()
+
+    """
+    print "Resonance frequency = " + str(popt[1]) + " GHz"
+    print "Q factor = " + str(Q_factor)
+
+    fig, axes = plt.subplots(1,1)
+    collected_data_abs.plot(ax=axes)
+    axes.plot(a_abs.f_d, lorentzian_func(a_abs.f_d, *popt), 'g--')
+
+    plt.title(str(p.t_levels) + str(' ') + str(p.c_levels))
+
+    props = dict(boxstyle='round', facecolor='wheat', alpha=1)
+    if two_peaks == True:
+        textstr = 'f_r = ' + str(popt[1]) + 'GHz\n$Q$ = ' + str(Q_factor) + '\n$\chi$ = ' + str(
+            split * 1000) + 'MHz\n$\kappa$ = ' + str(1000 * params.kappa) + 'MHz\nRatio = ' + str(ratio)
+    else:
+        textstr = 'f_r = ' + str(popt[1]) + 'GHz\n$Q$ = ' + str(Q_factor) + '\n$\kappa$ = ' + str(1000 * params.kappa) + 'MHz'
+
+    label = axes.text(a_abs.f_d[0], popt[0], textstr, fontsize=14, verticalalignment='top', bbox=props)
+
+    #collected_dataset = xr.Dataset({'a_re': collected_data_re,
+    #                                'a_im': collected_data_im,
+    #                                'a_abs': collected_data_abs})
+
+    #time = datetime.now()
+    #cwd = os.getcwd()
+    #time_string = time.strftime('%Y-%m-%d--%H-%M-%S')
+
+    #directory = cwd + '/eps=' + str(eps) + 'GHz' + '/' + time_string
+    #if not os.path.exists(directory):
+    #    os.makedirs(directory)
+    #    collected_dataset.to_netcdf(directory+'/spectrum.nc')
+
+    plt.show()
+
+    """
+
+    #fc_new = params.fc + 10.49602 - popt[1]
+    #g_new = params.g * np.sqrt(23.8 * 1000 / split) / 1000
+    #kappa_new = Q_factor * params.kappa / 8700
+
+    return popt[1], split, Q_factor
+
+
+def lorentzian_func(f, A, f_r, Q, c):
+    return A*(f_r/Q)/(((f_r/Q)**2 + 4*(f-f_r)**2))**0.5 + c
+
+
+def lorentzian_fit(x, y):
+    max_idx = np.argmax(y)
+    A_est = y[max_idx]
+    Q_est = 10000
+    f_r_est = x[max_idx]
+    popt, pcov = curve_fit(lorentzian_func, x, y, p0=[A_est, f_r_est, Q_est, 0.01])
+    return popt, pcov
