@@ -314,7 +314,7 @@ def transmission_calc(args, results, custom=True, method='direct'):
 
     completed = False
     attempts = 0
-    while attempts < 3 and completed == False:
+    while attempts < 30 and completed == False:
         attempts += 1
         try:
             if custom:
