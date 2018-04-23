@@ -312,15 +312,22 @@ def transmission_calc(args, results, custom=True, method='direct'):
     params.fd = fd
     H = hamiltonian(params)
 
-    if custom:
-        if results.shape[0] == 0:
-            initial = None
-        else:
-            idx_min = np.argmin(np.abs(results['fd_points'] - fd))
-            initial = results['states'].iloc[idx_min]
-        rho_ss = steadystate_custom(H, c_ops, initial)
-    else:
-        rho_ss = steadystate(H, c_ops, method=method)
+    attempts = 0
+    while attempts < 3 and completed == False:
+        attempts += 1
+        try:
+            if custom:
+                if results.shape[0] == 0:
+                    initial = None
+                else:
+                    idx_min = np.argmin(np.abs(results['fd_points'] - fd))
+                    initial = results['states'].iloc[idx_min]
+                rho_ss = steadystate_custom(H, c_ops, initial)
+            else:
+                rho_ss = steadystate(H, c_ops, method=method)
+            completed = True
+        except:
+            attempts += 1
 
     rho_c_ss = rho_ss.ptrace(0)
     rho_t_ss = rho_ss.ptrace(1)
