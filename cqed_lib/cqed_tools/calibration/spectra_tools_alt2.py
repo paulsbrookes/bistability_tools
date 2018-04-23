@@ -258,6 +258,7 @@ def transmission_calc_array(queue, results, custom, method='direct'):
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in tqdm(args):
+        print(arg)
         steady_state = transmission_calc(arg, results, custom=custom, method=method)
         transmission = steady_state[0]
         edge_occupation_c = steady_state[1]
