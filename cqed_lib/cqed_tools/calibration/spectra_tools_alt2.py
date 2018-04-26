@@ -251,7 +251,7 @@ def derivative(x, y, n_derivative=1):
     return positions, derivatives
 
 
-def transmission_calc_array(queue, results, custom=False, method='direct'):
+def transmission_calc_array(queue, results=pd.DataFrame([]), custom=False, method='direct'):
     args = []
     for index, value in enumerate(queue.fd_points):
         args.append([value, queue.params[index]])
