@@ -19,6 +19,7 @@ import scipy
 import scipy.sparse.linalg as lin
 from ..simulation.hamiltonian import *
 from tqdm import tqdm
+import sys
 
 
 class SpectrumOptions:
@@ -251,7 +252,9 @@ def derivative(x, y, n_derivative=1):
     return positions, derivatives
 
 
-def transmission_calc_array(queue, results=pd.DataFrame([]), custom=False, method='direct'):
+def transmission_calc_array(queue, results=None, custom=False, method='direct'):
+    if results is None:
+        results = pd.DataFrame([])
     args = []
     for index, value in enumerate(queue.fd_points):
         args.append([value, queue.params[index]])
@@ -275,7 +278,8 @@ def transmission_calc_array(queue, results=pd.DataFrame([]), custom=False, metho
             results = pd.concat([results,new_result])
             results = results.sort_values('fd_points')
         except:
-            pass
+            print "Unexpected error:", sys.exc_info()[0]
+            print('failed to find steady state at ' + str(arg))
     return results
 
 
