@@ -322,7 +322,7 @@ def save_eigenvalues(eigenvalues, params):
             labels.append(key)
             indices.append(item)
     mi = pd.MultiIndex.from_tuples([indices],names=labels)
-    df = pd.DataFrame(eigenvalues,index=mi)
+    df = pd.DataFrame([eigenvalues],index=mi)
     hdf_append('liouvillian_eigenvalues.h5',df,'eigenvalues')
 
 
@@ -344,7 +344,7 @@ def transmission_calc(args, results, custom=True, method='direct'):
                 if results.shape[0] == 0:
                     initial = None
                 else:
-                    idx_min = np.idxmin(np.abs(results['fd_points'] - fd))
+                    idx_min = np.argmin(np.abs(results['fd_points'] - fd))
                     initial = results['states'].iloc[idx_min]
                 rho_ss, eigenvalues = steadystate_custom(H, c_ops, initial, eigenvalues=True, k=10)
                 save_eigenvalues(eigenvalues, params)
