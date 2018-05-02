@@ -668,3 +668,59 @@ def new_transmon_params(Ej, Ec, f01, alpha, f01_target, alpha_target):
     Ej_new = ((np.sqrt(8*Ej*Ec) + Ec_new - Ec)**2) / (8*Ec_new)
     Ej_new *= ((f01_target+Ec_new)/(f01+Ec_new))**2
     return Ej_new, Ec_new
+
+
+def r2_calc(y,f):
+    ss_res = np.sum((y - f) ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2)
+    r2 = 1 - (ss_res / ss_tot)
+    return r2
+
+
+def objective_calc(x, optimization_params, base_params, reference, fd_array, display=False):
+    for idx, param in enumerate(optimization_params):
+        setattr(base_params, param, x[idx])
+
+    fd_lower = fd_array[0]
+    fd_upper = fd_array[-1]
+    reference /= np.max(reference).values[()]
+    reference = reference[fd_lower:fd_upper]
+
+    params_array = np.array([params for fd in fd_array])
+    queue = Queue(params=params_array, fd_points=fd_array)
+    qsave(queue, 'queue')
+    results = transmission_calc_array(queue)
+    abs_transmissions = np.abs(results['transmissions'])
+
+    f = interpolate.interp1d(fd_array, abs_transmissions, kind='cubic')
+
+    simulated = f(reference.index)
+    simulated /= np.max(simulated)
+
+    r2 = r2_calc(reference['a_abs'], simulated)
+
+    if display:
+        fig, axes = plt.subplots(1, 1)
+        axes.plot(reference.index, simulated)
+        reference['a_abs'].plot(ax=axes)
+        plt.show()
+    print('params: ', optimization_params, x, ', objective: ', 1 - r2)
+    return 1 - r2
+
+
+def hdf_append(path,data,key):
+
+    if os.path.exists(path):
+        f = h5py.File(path, 'r')
+        keys = [key for key in f.keys()]
+        f.close()
+    else:
+        keys = []
+
+    if key in keys:
+        loaded = pd.read_hdf(path,key=key)
+    else:
+        loaded = pd.DataFrame()
+
+    combined = loaded.append(data)
+    combined.to_hdf(path,key=key,mode='a')
