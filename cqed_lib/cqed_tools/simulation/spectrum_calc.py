@@ -44,7 +44,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
 
     if not os.path.exists('./steady_state.qu'):
         if save_state or not os.path.exists('./ss_results.csv'):
-            print('Generating steady state for job_index = '+str(job_index))
+            print('Generating steady state for job_index = '+str(sys_params.job_index))
             try:
                 qutip.settings.has_mkl = True
                 rho_ss = steadystate(H, c_ops)

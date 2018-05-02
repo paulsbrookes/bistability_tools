@@ -34,7 +34,7 @@ def slowdown_sim(job_index, output_directory='./results'):
 
     if os.path.exists('./steady_state.qu'):
         if os.path.exists('./state_checkpoint.qu'):
-            print('Loading state checkpoint for job_index = '+str(job_index))
+            print('Loading state checkpoint for job_index = '+str(sys_params.job_index))
             initial_state = qload('./state_checkpoint')
             previous_results = pd.read_csv('./results.csv')
             delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
