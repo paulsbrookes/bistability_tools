@@ -20,6 +20,7 @@ import scipy.sparse.linalg as lin
 from ..simulation.hamiltonian import *
 from tqdm import tqdm
 import sys
+import h5py
 
 
 class SpectrumOptions:
@@ -283,7 +284,7 @@ def transmission_calc_array(queue, results=None, custom=False, method='direct'):
     return results
 
 
-def steadystate_custom(H, c_ops, initial):
+def steadystate_custom(H, c_ops, initial, k=1, eigenvalues=False):
     L = liouvillian(H, c_ops)
 
     data = L.data
@@ -294,7 +295,7 @@ def steadystate_custom(H, c_ops, initial):
     else:
         eigenvector = operator_to_vector(initial).data.todense()
 
-    values, vectors = lin.eigs(csc, k=1, sigma=0.0, v0=eigenvector)
+    values, vectors = lin.eigs(csc, k=k, sigma=0.0, v0=eigenvector)
     sort_indices = np.argsort(np.abs(values))
     values = values[sort_indices]
     states = vectors[:, sort_indices]
@@ -306,7 +307,23 @@ def steadystate_custom(H, c_ops, initial):
     rho_ss.dims = H.dims
     rho_ss /= rho_ss.tr()
 
-    return rho_ss
+    if eigenvalues:
+        return rho_ss, values
+    else:
+        return rho_ss
+
+
+def save_eigenvalues(eigenvalues, params):
+    params_dict = params.__dict__
+    labels = []
+    indices = []
+    for key, item in params_dict.items():
+        if key is not 'labels':
+            labels.append(key)
+            indices.append(item)
+    mi = pd.MultiIndex.from_tuples([indices],names=labels)
+    df = pd.DataFrame(eigenvalues,index=mi)
+    hdf_append('liouvillian_eigenvalues.h5',df,'eigenvalues')
 
 
 def transmission_calc(args, results, custom=True, method='direct'):
@@ -327,9 +344,10 @@ def transmission_calc(args, results, custom=True, method='direct'):
                 if results.shape[0] == 0:
                     initial = None
                 else:
-                    idx_min = np.argmin(np.abs(results['fd_points'] - fd))
+                    idx_min = np.idxmin(np.abs(results['fd_points'] - fd))
                     initial = results['states'].iloc[idx_min]
-                rho_ss = steadystate_custom(H, c_ops, initial)
+                rho_ss, eigenvalues = steadystate_custom(H, c_ops, initial, eigenvalues=True, k=10)
+                save_eigenvalues(eigenvalues, params)
             else:
                 rho_ss = steadystate(H, c_ops, method=method)
             completed = True
