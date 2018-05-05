@@ -57,7 +57,7 @@ def slowdown_sim(job_index, output_directory='./results'):
             save = True #save the first row of results
 
     else:
-        print('Finding steady state for job_index = '+str(job_index))
+        print('Finding steady state for job_index = '+str(sys_params.job_index))
         rho_ss = steadystate(H, c_ops)
         qsave(rho_ss, './steady_state')
         bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)

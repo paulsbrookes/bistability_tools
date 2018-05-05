@@ -45,13 +45,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
     if not os.path.exists('./steady_state.qu'):
         if save_state or not os.path.exists('./ss_results.csv'):
             print('Generating steady state for job_index = '+str(sys_params.job_index))
-            try:
-                qutip.settings.has_mkl = True
-                rho_ss = steadystate(H, c_ops)
-            except:
-                print('Trying to calculate steady state without mkl.')
-                qutip.settings.has_mkl = False
-                rho_ss = steadystate(H, c_ops)
+            rho_ss = steadystate(H, c_ops)
             if save_state:
                 qsave(rho_ss,'steady_state')
 
@@ -62,7 +56,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
         headings = [key for key in e_ops.keys()]
         results = pd.DataFrame(expectations).T
         results.columns = headings
-        results.index = [job_index]
+        results.index = [sys_params.job_index]
         results.index.name = 'job_index'
 
         with open('./ss_results.csv', 'a') as file:
