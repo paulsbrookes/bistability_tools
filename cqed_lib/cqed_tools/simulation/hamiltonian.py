@@ -79,13 +79,18 @@ def collapse_operators(params):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
     c_ops = []
-    c_ops.append(np.sqrt(params.kappa*(params.n_c+1)) * a)
-    c_ops.append(np.sqrt(params.kappa*params.n_c) * a.dag())
-    c_ops.append(np.sqrt(params.gamma*(params.n_t+1)) * sm)
-    c_ops.append(np.sqrt(params.gamma*params.n_t) * sm.dag())
-    #dispersion_op = dispersion_op_gen(params)
-    dispersion_op = sm.dag()*sm
-    c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
+    if params.kappa != 0:
+        c_ops.append(np.sqrt(params.kappa*(params.n_c+1)) * a)
+        if params.n_c != 0:
+            c_ops.append(np.sqrt(params.kappa*params.n_c) * a.dag())
+    if params.gamma != 0:
+        c_ops.append(np.sqrt(params.gamma*(params.n_t+1)) * sm)
+        if params.n_t != 0:
+            c_ops.append(np.sqrt(params.gamma*params.n_t) * sm.dag())
+    if params.gamma_phi != 0:
+        #dispersion_op = dispersion_op_gen(params)
+        dispersion_op = sm.dag()*sm
+        c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
     return c_ops
 
 
