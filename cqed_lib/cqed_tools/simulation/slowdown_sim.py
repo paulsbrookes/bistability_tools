@@ -29,6 +29,7 @@ def slowdown_sim(job_index, output_directory='./results'):
     sys_params.to_csv('settings.csv')
 
     H = hamiltonian(packaged_params)
+    qsave(H,'slowdown_hamiltonian')
     c_ops = collapse_operators(packaged_params)
     options = Options(nsteps=200000000)
 

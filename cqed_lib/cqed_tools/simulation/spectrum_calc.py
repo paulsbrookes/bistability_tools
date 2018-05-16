@@ -26,6 +26,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
     sys_params.to_csv('settings.csv')
 
     H = hamiltonian(packaged_params)
+    qsave(H,'spectrum_hamiltonian')
     c_ops = collapse_operators(packaged_params)
     a = tensor(destroy(sys_params.c_levels), qeye(sys_params.t_levels))
     sm = tensor(qeye(sys_params.c_levels), destroy(sys_params.t_levels))
