@@ -9,9 +9,7 @@ import numpy as np
 import scipy.integrate
 import pandas as pd
 import pickle
-#import scipy.special as special
 import matplotlib.pyplot as plt
-#import pygsl.testing.sf as sf
 from .gsl import *
 from .hamiltonian import *
 

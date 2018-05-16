@@ -1,31 +1,13 @@
 import scipy.integrate
 from scipy.special import factorial
-import qutip.settings as qset
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip import *
-import os
-import types
+
 import numpy as np
 import scipy.integrate
-import pandas as pd
-import pickle
-#import scipy.special as special
-import matplotlib.pyplot as plt
-#import pygsl.testing.sf as sf
+
 from .gsl import *
 
-from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
-from qutip.expect import expect_rho_vec
-from qutip.solver import Options, Result, config
-from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.cy.codegen import Codegen
-from qutip.cy.utilities import _cython_build_cleanup
-from qutip.states import ket2dm
-from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
-from qutip.settings import debug
-from collections import OrderedDict
-from mpi4py import MPI
+
 
 
 class Parameters:

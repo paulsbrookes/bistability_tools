@@ -37,7 +37,7 @@ if __name__ == '__main__':
         shutil.copyfile('sub_spectrum.py', stack_directory+'/sub_spectrum.py')
         #shutil.copytree('tools', stack_directory+'/tools')
 
-    n_threads = 128
+    n_threads = 256
 
     content = "#!/bin/bash -l\n\n" \
     "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     "module unload compilers\n" \
     "module load compilers/gnu\n" \
     "module unload mpi/intel/2017/update1/intel\n" \
-    "module load mpi/openmpi/3.0.0/gnu-4.9.2\n" \
+    "module load mpi/openmpi/1.10.1/gnu-4.9.2\n" \
     "module load python2/recommended\n" \
     "module load mpi4py/2.0.0/python2\n\n" \
     "# 8. Run the application.\n" \
