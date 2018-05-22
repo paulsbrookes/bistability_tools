@@ -11,7 +11,7 @@ from .gsl import *
 
 
 class Parameters:
-    def __init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t, n_c, f01=None, chi=None):
+    def __init__(self, fc=None, Ej=None, g=None, Ec=None, eps=None, fd=None, kappa=None, gamma=None, t_levels=None, c_levels=None, gamma_phi=None, kappa_phi=None, n_t=None, n_c=None, f01=None, chi=None):
         self.fc = fc
         self.Ej = Ej
         self.eps = eps
