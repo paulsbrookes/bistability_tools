@@ -24,7 +24,7 @@ from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from collections import OrderedDict
-from mpi4py import MPI
+#from mpi4py import MPI
 
 def mesolve_checkpoint(H, rho0, tlist, c_ops, e_ops, save, subdir, args={}, options=None,
                        progress_bar=None):

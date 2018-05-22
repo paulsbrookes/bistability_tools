@@ -11,7 +11,7 @@ from .gsl import *
 
 
 class Parameters:
-    def __init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t, n_c):
+    def __init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t, n_c, f01=None, chi=None):
         self.fc = fc
         self.Ej = Ej
         self.eps = eps
@@ -26,10 +26,12 @@ class Parameters:
         self.kappa_phi = kappa_phi
         self.n_t = n_t
         self.n_c = n_c
-        self.labels = ['f_d', 'eps', 'E_j', 'f_c', 'g', 'kappa', 'kappa_phi', 'gamma', 'gamma_phi', 'E_c', 'n_t', 'n_c']
+        self.f01 = f01
+        self.chi = chi
+        self.labels = ['f_d', 'eps', 'E_j', 'f_c', 'g', 'kappa', 'kappa_phi', 'gamma', 'gamma_phi', 'E_c', 'n_t', 'n_c', 'f01', 'chi']
 
     def copy(self):
-        params = Parameters(self.fc, self.Ej, self.g, self.Ec, self.eps, self.fd, self.kappa, self.gamma, self.t_levels, self.c_levels, self.gamma_phi, self.kappa_phi, self.n_t, self.n_c)
+        params = Parameters(self.fc, self.Ej, self.g, self.Ec, self.eps, self.fd, self.kappa, self.gamma, self.t_levels, self.c_levels, self.gamma_phi, self.kappa_phi, self.n_t, self.n_c, self.f01, self.chi)
         return params
 
 
@@ -209,9 +211,14 @@ def coupling_hamiltonian_gen(params):
     return coupling_hamiltonian
 
 
-def hamiltonian(params):
+def hamiltonian(params, mathieu=True):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
-    transmon_hamiltonian = transmon_hamiltonian_gen(params)
-    coupling_hamiltonian = coupling_hamiltonian_gen(params)
+    if mathieu:
+        transmon_hamiltonian = transmon_hamiltonian_gen(params)
+        coupling_hamiltonian = coupling_hamiltonian_gen(params)
+    else:
+        b = tensor(qeye(params.c_levels), destroy(params.t_levels))
+        coupling_hamiltonian = params.g*(a.dag()*b + b.dag()*a)
+        transmon_hamiltonian = (params.f01-params.fd)*b.dag()*b + params.chi*b.dag()*b.dag()*b*b
     H = (params.fc - params.fd) * a.dag() * a + transmon_hamiltonian + coupling_hamiltonian + params.eps * (a + a.dag())
     return H
