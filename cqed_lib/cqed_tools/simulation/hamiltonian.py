@@ -1,13 +1,9 @@
 import scipy.integrate
 from scipy.special import factorial
 from qutip import *
-
 import numpy as np
 import scipy.integrate
-
 from .gsl import *
-
-
 
 
 class Parameters:
@@ -111,6 +107,7 @@ def mathieu_ab_single(idx, q):
 
 mathieu_ab = np.vectorize(mathieu_ab_single)
 
+
 def transmon_energies_calc(params, normalize=True):
     Ec = params.Ec
     Ej = params.Ej
@@ -211,14 +208,21 @@ def coupling_hamiltonian_gen(params):
     return coupling_hamiltonian
 
 
-def hamiltonian(params, mathieu=True):
+def hamiltonian(params, eliminated=False):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
-    if mathieu:
-        transmon_hamiltonian = transmon_hamiltonian_gen(params)
-        coupling_hamiltonian = coupling_hamiltonian_gen(params)
-    else:
-        b = tensor(qeye(params.c_levels), destroy(params.t_levels))
-        coupling_hamiltonian = params.g*(a.dag()*b + b.dag()*a)
-        transmon_hamiltonian = (params.f01-params.fd)*b.dag()*b + params.chi*b.dag()*b.dag()*b*b
+    transmon_hamiltonian = transmon_hamiltonian_gen(params)
+    coupling_hamiltonian = coupling_hamiltonian_gen(params)
     H = (params.fc - params.fd) * a.dag() * a + transmon_hamiltonian + coupling_hamiltonian + params.eps * (a + a.dag())
+    return H
+
+
+def hamiltonian_eliminated(params):
+    b = tensor(qeye(params.c_levels), destroy(params.t_levels))
+    dims = b.dims
+    transmon_linear = (params.f01-params.fd)*b.dag()*b
+    transmon_nonlinear = params.chi*(b.dag()*b.dag())*(b*b)
+    transmon_hamiltonian = transmon_linear + transmon_nonlinear
+    H = transmon_hamiltonian
+    H.dims = dims
+    H += params.eps*b.dag() + np.conjugate(params.eps)*b
     return H

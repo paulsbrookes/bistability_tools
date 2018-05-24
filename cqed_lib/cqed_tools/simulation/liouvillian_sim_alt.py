@@ -1,6 +1,7 @@
 from .legion_tools import *
-import scipy.sparse.linalg as lin
+from .hamiltonian import *
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
+import scipy.sparse.linalg as lin
 import h5py
 
 
@@ -21,7 +22,24 @@ def hdf_append(path,data,key):
     combined.to_hdf(path,key=key,mode='a')
 
 
-def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None, eigenstate=None):
+def eliminate(params):
+    delta_a = params.fc - params.fd
+    delta_b = params.f01 - params.fd
+    delta_eff = delta_b - params.g**2 * delta_a/(delta_a**2 + params.kappa**2)
+    kappa_eff = params.gamma + params.g**2 * params.kappa/(delta_a**2 + params.kappa**2)
+    eps_1_eff = params.g*params.kappa*params.eps/(delta_a**2 + params.kappa**2)
+    eps_2_eff = params.g*delta_a*params.eps/(delta_a**2 + params.kappa**2)
+    eps_eff = -(eps_1_eff + 1j*eps_2_eff)
+    params.g = 0.0
+    params.eps = eps_eff
+    params.kappa = 0.0
+    params.gamma = kappa_eff
+    params.c_levels = 1
+    params.fd = params.f01 - delta_eff
+    return params
+
+
+def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None, eigenstate=None, eliminated=False):
 
     default_eigenvalue = 0
 
@@ -39,10 +57,6 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
 
     sys_params = stack_frame.iloc[job_index]
     frame_params = sys_params
-    packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
-                                 frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
-                                 frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
-                                 frame_params.n_c)
 
     print(stack_directory)
 
@@ -55,8 +69,21 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     print(directory)
     sys_params.to_csv('settings.csv')
 
-    H = hamiltonian(packaged_params)
-    c_ops = collapse_operators(packaged_params)
+    if not eliminated:
+        packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
+                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                     frame_params.n_c)
+        H = hamiltonian(packaged_params)
+        c_ops = collapse_operators(packaged_params)
+    else:
+        packaged_params = Parameters(frame_params.fc, None, frame_params.g, None, frame_params.eps,
+                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                     frame_params.n_c, frame_params.f01, frame_params.chi)
+        eliminated_params = eliminate(packaged_params)
+        H = hamiltonian_eliminated(eliminated_params)
+        c_ops = collapse_operators(eliminated_params)
 
     L = liouvillian(H, c_ops)
 
@@ -69,22 +96,22 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
             eigenvalue = default_eigenvalue
 
     k = 10
-    values, states = lin.eigs(csc, k=k, sigma=eigenvalue, v0=eigenstate)
-    sort_indices = np.argsort(np.abs(values))
-    values = values[sort_indices]
+    eigvalues, states = lin.eigs(csc, k=k, sigma=eigenvalue, v0=eigenstate)
+    sort_indices = np.argsort(np.abs(eigvalues))
+    eigvalues = eigvalues[sort_indices]
     states = states[:,sort_indices]
-    #mi = pd.MultiIndex.from_tuples((frame_params.values[:],), names=frame_params.index)
 
-    values = pd.DataFrame(values)
+    values = pd.DataFrame(eigvalues)
     values.columns = ['eigenvalues']
     states = pd.DataFrame(states)
-    values.to_csv('eigenvalues.csv',index=False)
+    values.to_csv('eigenvalues.csv', index=False)
+
 
     attempts = 0
     written = False
     while not written and attempts < 3:
         try:
-            states.iloc[:,0:3].to_hdf('states.h5','states',mode='w')
+            states.iloc[:,0:3].to_hdf('states.h5', 'states', mode='w')
             trial_opening = pd.read_hdf('states.h5')
             written = True
         except:
@@ -110,18 +137,8 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     names = list(frame_params.index)
     names.append('index')
     mi = pd.MultiIndex.from_tuples(tuples, names=names)
-    #values.index = mi
-    saving = values.copy()
-    saving.index = mi
     os.chdir(stack_directory)
-    print('saving results.h5')
-    if os.path.exists('results.h5'):
-        loaded = pd.read_hdf('results.h5',key='eigenvalues')
-    else:
-        loaded = pd.DataFrame()
-    combined = loaded.append(saving)
-    combined.to_hdf('results.h5',key='eigenvalues',mode='a')
-    #values.to_hdf('results.h5',key='eigenvalues',append=True,format='table',mode='a')
+
 
     n = packaged_params.t_levels * packaged_params.c_levels
     dims = [packaged_params.c_levels, packaged_params.t_levels]
@@ -131,16 +148,31 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     rho = rho + rho.dag()
     rho /= rho.tr()
 
-    a = tensor(destroy(packaged_params.c_levels), qeye(packaged_params.t_levels))
 
+    a = tensor(destroy(packaged_params.c_levels), qeye(packaged_params.t_levels))
+    b = tensor(qeye(packaged_params.c_levels), destroy(packaged_params.t_levels))
+    dims = a.dims
     a_exp_point = expect(a, rho)
-    n_exp_point = expect(a.dag() * a, rho)
+    b_exp_point = expect(b, rho)
+
+    num_op_a = a.dag()*a
+    num_op_a.dims = dims
+    num_op_b = b.dag()*b
+    num_op_b.dims = dims
+    n_a_exp_point = expect(num_op_a, rho)
+    n_b_exp_point = expect(num_op_b, rho)
+
     a_exp_point = pd.DataFrame([a_exp_point], index=mi[0:1])
-    n_exp_point = pd.DataFrame([n_exp_point], index=mi[0:1])
+    b_exp_point = pd.DataFrame([b_exp_point], index=mi[0:1])
+    n_a_exp_point = pd.DataFrame([n_a_exp_point], index=mi[0:1])
+    n_b_exp_point = pd.DataFrame([n_b_exp_point], index=mi[0:1])
+    values_frame = pd.DataFrame([eigvalues], index=mi[0:1])
 
     hdf_append('results.h5', a_exp_point, 'a')
-    hdf_append('results.h5', n_exp_point, 'n')
-
+    hdf_append('results.h5', b_exp_point, 'b')
+    hdf_append('results.h5', n_a_exp_point, 'n_a')
+    hdf_append('results.h5', n_b_exp_point, 'n_b')
+    hdf_append('results.h5', values_frame, 'eigenvalues')
 
     os.chdir(cwd)
 
