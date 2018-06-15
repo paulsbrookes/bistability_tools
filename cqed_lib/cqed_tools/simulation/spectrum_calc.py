@@ -46,21 +46,24 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
     if not os.path.exists('./steady_state.qu'):
         if save_state or not os.path.exists('./ss_results.csv'):
             print('Generating steady state for job_index = '+str(sys_params.job_index))
-            rho_ss = steadystate(H, c_ops)
-            if save_state:
-                qsave(rho_ss,'steady_state')
+            try:
+                rho_ss = steadystate(H, c_ops)
+                if save_state:
+                    qsave(rho_ss,'steady_state')
 
-        expectations = []
-        for e_op in e_ops.values():
-            expectations.append(expect(e_op, rho_ss))
+                expectations = []
+                for e_op in e_ops.values():
+                    expectations.append(expect(e_op, rho_ss))
 
-        headings = [key for key in e_ops.keys()]
-        results = pd.DataFrame(expectations).T
-        results.columns = headings
-        results.index = [sys_params.job_index]
-        results.index.name = 'job_index'
+                headings = [key for key in e_ops.keys()]
+                results = pd.DataFrame(expectations).T
+                results.columns = headings
+                results.index = [sys_params.job_index]
+                results.index.name = 'job_index'
 
-        with open('./ss_results.csv', 'a') as file:
-            results.to_csv(file, float_format='%.15f')
+                with open('./ss_results.csv', 'a') as file:
+                    results.to_csv(file, float_format='%.15f')
+            except:
+                print('failure')
 
     os.chdir(cwd)
