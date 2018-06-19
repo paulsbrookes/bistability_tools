@@ -701,8 +701,8 @@ def _generic_ode_solve_checkpoint(r, rho0, tlist, e_ops, opt, progress_bar, save
                     with open('./cavity_states.pkl', 'ab') as f:
                         pickle.dump(rho_c, f)
 
-            with open('./results.csv', 'a') as file:
-                results.to_csv(file, header=first_row, float_format='%.15f')
+            #with open('./results.csv', 'a') as file:
+            results.to_csv('./results.csv', mode='a', header=first_row, float_format='%.15f')
 
             qsave(rho_checkpoint, './state_checkpoint')
 

@@ -31,7 +31,7 @@ def slowdown_sim(job_index, output_directory='./results'):
     H = hamiltonian(packaged_params)
     qsave(H,'slowdown_hamiltonian')
     c_ops = collapse_operators(packaged_params)
-    options = Options(nsteps=200000000)
+    options = Options(nsteps=2000000000)
 
     if os.path.exists('./steady_state.qu'):
         if os.path.exists('./state_checkpoint.qu'):
