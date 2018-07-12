@@ -70,7 +70,7 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     sys_params.to_csv('settings.csv')
 
     if not eliminated:
-        if transmon:
+        if transmon is True:
             packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
                                          frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                          frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,

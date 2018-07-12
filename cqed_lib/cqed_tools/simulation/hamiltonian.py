@@ -208,10 +208,10 @@ def coupling_hamiltonian_gen(params):
     return coupling_hamiltonian
 
 
-def hamiltonian(params, eliminated=False, transmon=True):
+def hamiltonian(params, transmon=True):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     H = (params.fc - params.fd) * a.dag() * a + params.eps * (a + a.dag())
-    if transmon:
+    if transmon is True:
         transmon_hamiltonian = transmon_hamiltonian_gen(params)
         coupling_hamiltonian = coupling_hamiltonian_gen(params)
         H += transmon_hamiltonian + coupling_hamiltonian
