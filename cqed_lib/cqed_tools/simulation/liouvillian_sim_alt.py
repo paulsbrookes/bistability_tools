@@ -39,7 +39,7 @@ def eliminate(params):
     return params
 
 
-def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None, eigenstate=None, eliminated=False):
+def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None, eigenstate=None, eliminated=False, transmon=True):
 
     default_eigenvalue = 0
 
@@ -70,12 +70,20 @@ def liouvillian_sim_alt(job_index, output_directory='./results', eigenvalue=None
     sys_params.to_csv('settings.csv')
 
     if not eliminated:
-        packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
-                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
-                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
-                                     frame_params.n_c)
-        H = hamiltonian(packaged_params)
-        c_ops = collapse_operators(packaged_params)
+        if transmon:
+            packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
+                                         frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                         frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                         frame_params.n_c)
+            H = hamiltonian(packaged_params, transmon=transmon)
+            c_ops = collapse_operators(packaged_params)
+        else:
+            packaged_params = Parameters(frame_params.fc, None, frame_params.g, None, frame_params.eps,
+                                         frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                         frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                         frame_params.n_c, frame_params.f01)
+            H = hamiltonian(packaged_params, transmon=transmon)
+            c_ops = collapse_operators(packaged_params)
     else:
         packaged_params = Parameters(frame_params.fc, None, frame_params.g, None, frame_params.eps,
                                      frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
