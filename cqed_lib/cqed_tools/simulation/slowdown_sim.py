@@ -1,7 +1,7 @@
 from .legion_tools import *
 
 
-def slowdown_sim(job_index, output_directory='./results'):
+def slowdown_sim(job_index, output_directory='./results', transmon=True):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
@@ -18,7 +18,26 @@ def slowdown_sim(job_index, output_directory='./results'):
                                  frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                  frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                  frame_params.n_c)
-    #directory = stack_directory + '/' + sys_params.group_folder + '/' + str(job_index)
+
+
+    if transmon is True:
+        packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
+                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                     frame_params.n_c)
+        H = hamiltonian(packaged_params, transmon=transmon)
+        qsave(H, 'slowdown_hamiltonian')
+        c_ops = collapse_operators(packaged_params)
+    else:
+        packaged_params = Parameters(frame_params.fc, None, frame_params.g, None, frame_params.eps,
+                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                     frame_params.n_c, frame_params.f01)
+        H = hamiltonian(packaged_params, transmon=transmon)
+        qsave(H, 'slowdown_hamiltonian')
+        c_ops = collapse_operators(packaged_params)
+
+
     directory = stack_directory + '/' + sys_params.group_folder + '/' + str(sys_params.job_index)
 
     if not os.path.exists(directory):
@@ -28,9 +47,6 @@ def slowdown_sim(job_index, output_directory='./results'):
     print(directory)
     sys_params.to_csv('settings.csv')
 
-    H = hamiltonian(packaged_params)
-    qsave(H,'slowdown_hamiltonian')
-    c_ops = collapse_operators(packaged_params)
     options = Options(nsteps=2000000000)
 
     if os.path.exists('./steady_state.qu'):
