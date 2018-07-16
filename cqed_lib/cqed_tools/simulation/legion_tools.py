@@ -719,53 +719,6 @@ def _generic_ode_solve_checkpoint(r, rho0, tlist, e_ops, opt, progress_bar, save
     return output
 
 
-class Parameters:
-    def __init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t, n_c):
-        self.fc = fc
-        self.Ej = Ej
-        self.eps = eps
-        self.g = g
-        self.Ec = Ec
-        self.gamma = gamma
-        self.kappa = kappa
-        self.t_levels = t_levels
-        self.c_levels = c_levels
-        self.fd = fd
-        self.gamma_phi = gamma_phi
-        self.kappa_phi = kappa_phi
-        self.n_t = n_t
-        self.n_c = n_c
-        self.labels = ['f_d', 'eps', 'E_j', 'f_c', 'g', 'kappa', 'kappa_phi', 'gamma', 'gamma_phi', 'E_c', 'n_t', 'n_c']
-
-    def copy(self):
-        params = Parameters(self.fc, self.Ej, self.g, self.Ec, self.eps, self.fd, self.kappa, self.gamma, self.t_levels, self.c_levels, self.gamma_phi, self.kappa_phi, self.n_t, self.n_c)
-        return params
-
-
-class ParametersPartial:
-    def __init__(self, fc=None, Ej=None, g=None, Ec=None, eps=None, fd=None, kappa=None, gamma=None, t_levels=None, c_levels=None, gamma_phi=None, kappa_phi=None, n_t=None, n_c=None):
-        self.fc = fc
-        self.Ej = Ej
-        self.eps = eps
-        self.g = g
-        self.Ec = Ec
-        self.gamma = gamma
-        self.kappa = kappa
-        self.t_levels = t_levels
-        self.c_levels = c_levels
-        self.fd = fd
-        self.gamma_phi = gamma_phi
-        self.kappa_phi = kappa_phi
-        self.n_t = n_t
-        self.n_c = n_c
-        self.labels = ['f_d', 'eps', 'E_j', 'f_c', 'g', 'kappa', 'kappa_phi', 'gamma', 'gamma_phi', 'E_c', 'n_t', 'n_c']
-
-    def copy(self):
-        params = ParametersPartial(fc=self.fc, Ej=self.Ej, g=self.g, Ec=self.Ec, eps=self.eps, fd=self.fd, kappa=self.kappa, gamma=self.gamma, t_levels=self.t_levels, c_levels=self.c_levels, gamma_phi=self.gamma_phi, kappa_phi=self.kappa_phi, n_t=self.n_t, n_c=self.n_c)
-        return params
-
-
-
 def collapse_operators(params):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))

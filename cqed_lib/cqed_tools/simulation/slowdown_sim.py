@@ -1,4 +1,5 @@
 from .legion_tools import *
+from .hamiltonian import *
 
 
 def slowdown_sim(job_index, output_directory='./results', transmon=True):
@@ -14,10 +15,6 @@ def slowdown_sim(job_index, output_directory='./results', transmon=True):
 
     sys_params = stack_frame.iloc[job_index]
     frame_params = sys_params
-    packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec, frame_params.eps,
-                                 frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
-                                 frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
-                                 frame_params.n_c)
 
 
     if transmon is True:

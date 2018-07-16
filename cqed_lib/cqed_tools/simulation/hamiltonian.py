@@ -7,7 +7,7 @@ from .gsl import *
 
 
 class Parameters:
-    def __init__(self, fc=None, Ej=None, g=None, Ec=None, eps=None, fd=None, kappa=None, gamma=None, t_levels=None, c_levels=None, gamma_phi=None, kappa_phi=None, n_t=None, n_c=None, f01=None, chi=None):
+    def __init__(self, fc=None, Ej=None, g=None, Ec=None, eps=None, fd=None, kappa=None, gamma=None, t_levels=None, c_levels=None, gamma_phi=None, kappa_phi=None, n_t=None, n_c=None, f01=None, chi=None, ntraj=None):
         self.fc = fc
         self.Ej = Ej
         self.eps = eps
@@ -24,6 +24,7 @@ class Parameters:
         self.n_c = n_c
         self.f01 = f01
         self.chi = chi
+        self.ntraj = ntraj
         self.labels = ['f_d', 'eps', 'E_j', 'f_c', 'g', 'kappa', 'kappa_phi', 'gamma', 'gamma_phi', 'E_c', 'n_t', 'n_c', 'f01', 'chi']
 
     def copy(self):
