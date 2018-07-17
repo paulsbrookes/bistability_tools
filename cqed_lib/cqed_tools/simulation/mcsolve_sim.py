@@ -42,7 +42,7 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True):
     print(directory)
     sys_params.to_csv('settings.csv')
 
-    options = Options(nsteps=2000000000)
+    #options = Options(nsteps=2000000000)
 
     start_time = 0
     snapshot_times = np.linspace(start_time, sys_params.end_time, sys_params.snapshots)
@@ -51,9 +51,10 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True):
     sm = tensor(qeye(sys_params.c_levels), destroy(sys_params.t_levels))
     initial_state = tensor(basis(sys_params.c_levels, 0), basis(sys_params.t_levels, 0))
 
+    options = Options()
     options.store_final_state = True
     options.ntraj = sys_params.ntraj
-    num_cpus_max = 4
+    num_cpus_max = 100
     options.num_cpus = min(num_cpus_max, options.ntraj)
     if options.num_cpus > 1:
         map_func = parallel_map
@@ -74,7 +75,10 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True):
     for level in range(sys_params.t_levels):
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
+    print('Sending job_index = ' + str(job_index) + ' to mcsolve.')
+    print(map_func,options.ntraj,snapshot_times.shape,snapshot_times[-1])
     results = mcsolve(H, initial_state, snapshot_times, c_ops, e_ops, map_func=map_func, options=options)
+    print('Finished mcsolve for job_Index = ' + str(job_index) + ' to mcsolve.')
     qsave(results, 'results')
 
     results_dict = OrderedDict()
