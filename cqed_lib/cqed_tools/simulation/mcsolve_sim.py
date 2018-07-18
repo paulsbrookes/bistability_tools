@@ -2,7 +2,7 @@ from .legion_tools import *
 from .hamiltonian import *
 
 
-def mcsolve_sim(job_index, stack_directory='./results', transmon=True):
+def mcsolve_sim(job_index, stack_directory='./results', transmon=True, bistable_initial=True):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
@@ -49,7 +49,26 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True):
 
     a = tensor(destroy(sys_params.c_levels), qeye(sys_params.t_levels))
     sm = tensor(qeye(sys_params.c_levels), destroy(sys_params.t_levels))
-    initial_state = tensor(basis(sys_params.c_levels, 0), basis(sys_params.t_levels, 0))
+
+    if bistable_initial:
+        if os.path.exists('./steady_state.qu'):
+            rho_ss = qload('steady_state')
+        else:
+            print('Finding steady state for job_index = ' + str(sys_params.job_index))
+            rho_ss = steadystate(H, c_ops)
+            qsave(rho_ss, './steady_state')
+        bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+        bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
+        qsave(bistability_characteristics, './characteristics')
+        if sys_params.qubit_state == 0:
+            chosen_state = rho_dim
+        else:
+            chosen_state = rho_bright
+        sm_expect = expect(rho)
+
+    else:
+        initial_state = tensor(basis(sys_params.c_levels, 0), basis(sys_params.t_levels, 0))
+
 
     options = Options()
     options.store_final_state = True

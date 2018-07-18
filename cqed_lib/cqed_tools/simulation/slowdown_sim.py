@@ -2,7 +2,12 @@ from .legion_tools import *
 from .hamiltonian import *
 
 
-def slowdown_sim(job_index, output_directory='./results', transmon=True, bistable_initial=True):
+def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True):
+
+    bistable_initial = bistable_initial
+    transmon = transmon
+
+    print('In slowdown_sim.py we have bistable_initial = ' + str(bistable_initial) + ' for job_index = ' + str(job_index))
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
@@ -60,7 +65,7 @@ def slowdown_sim(job_index, output_directory='./results', transmon=True, bistabl
         start_time = 0
         snapshot_times = np.linspace(start_time, sys_params.end_time, sys_params.snapshots)
         save = True #save the first row of results
-        if bistable_initial:
+        if bistable_initial is True:
             if os.path.exists('./steady_state.qu'):
                 rho_ss = qload('steady_state')
                 bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
@@ -82,7 +87,9 @@ def slowdown_sim(job_index, output_directory='./results', transmon=True, bistabl
                 else:
                     initial_state = rho_bright
         else:
-            initial_state = tensor(qeye(c_levels), basis(t_levels, sys_params.qubit_state))
+            print('Choosing initial state in the transmon basis.')
+            initial_state = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, sys_params.qubit_state))
+            bistability = None
 
     a = tensor(destroy(sys_params.c_levels), qeye(sys_params.t_levels))
     sm = tensor(qeye(sys_params.c_levels), destroy(sys_params.t_levels))
@@ -101,7 +108,7 @@ def slowdown_sim(job_index, output_directory='./results', transmon=True, bistabl
     for level in range(sys_params.t_levels):
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
-    if bistability:
+    if bistability or not bistable_initial:
         output = mesolve_checkpoint(H, initial_state, snapshot_times, c_ops, e_ops, save, directory, options=options)
 
     os.chdir(cwd)
