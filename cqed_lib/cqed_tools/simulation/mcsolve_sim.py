@@ -54,7 +54,7 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True):
     options = Options()
     options.store_final_state = True
     options.ntraj = sys_params.ntraj
-    num_cpus_max = 100
+    num_cpus_max = 8
     options.num_cpus = min(num_cpus_max, options.ntraj)
     if options.num_cpus > 1:
         map_func = parallel_map

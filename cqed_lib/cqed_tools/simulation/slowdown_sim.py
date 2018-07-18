@@ -2,7 +2,7 @@ from .legion_tools import *
 from .hamiltonian import *
 
 
-def slowdown_sim(job_index, output_directory='./results', transmon=True):
+def slowdown_sim(job_index, output_directory='./results', transmon=True, bistable_initial=True):
 
     with open('stack.csv', 'r') as f:
         header = f.readline()
@@ -46,44 +46,43 @@ def slowdown_sim(job_index, output_directory='./results', transmon=True):
 
     options = Options(nsteps=2000000000)
 
-    if os.path.exists('./steady_state.qu'):
-        if os.path.exists('./state_checkpoint.qu'):
-            print('Loading state checkpoint for job_index = '+str(sys_params.job_index))
-            initial_state = qload('./state_checkpoint')
-            previous_results = pd.read_csv('./results.csv')
-            delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
-            start_time = float(previous_results['times'].iloc[-1])
-            new_snapshots = sys_params.snapshots - start_time / delta_t
-            snapshot_times = np.linspace(start_time, sys_params.end_time, new_snapshots)
-            save = False #don't save the first row of results, it's already there
-            bistability = True
-        else:
-            rho_ss = qload('steady_state')
-            bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
-            if sys_params.qubit_state == 0:
-                initial_state = rho_dim
-            else:
-                initial_state = rho_bright
-            bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
-            qsave(bistability_characteristics, './characteristics')
-            start_time = 0
-            snapshot_times = np.linspace(start_time, sys_params.end_time, sys_params.snapshots)
-            save = True #save the first row of results
-
+    if os.path.exists('./state_checkpoint.qu'):
+        print('Loading state checkpoint for job_index = '+str(sys_params.job_index))
+        initial_state = qload('./state_checkpoint')
+        previous_results = pd.read_csv('./results.csv')
+        delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
+        start_time = float(previous_results['times'].iloc[-1])
+        new_snapshots = sys_params.snapshots - start_time / delta_t
+        snapshot_times = np.linspace(start_time, sys_params.end_time, new_snapshots)
+        save = False #don't save the first row of results, it's already there
+        bistability = True
     else:
-        print('Finding steady state for job_index = '+str(sys_params.job_index))
-        rho_ss = steadystate(H, c_ops)
-        qsave(rho_ss, './steady_state')
-        bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
-        bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
-        qsave(bistability_characteristics, './characteristics')
-        if sys_params.qubit_state == 0:
-            initial_state = rho_dim
-        else:
-            initial_state = rho_bright
         start_time = 0
         snapshot_times = np.linspace(start_time, sys_params.end_time, sys_params.snapshots)
-        save = True
+        save = True #save the first row of results
+        if bistable_initial:
+            if os.path.exists('./steady_state.qu'):
+                rho_ss = qload('steady_state')
+                bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+                if sys_params.qubit_state == 0:
+                    initial_state = rho_dim
+                else:
+                    initial_state = rho_bright
+                bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
+                qsave(bistability_characteristics, './characteristics')
+            else:
+                print('Finding steady state for job_index = '+str(sys_params.job_index))
+                rho_ss = steadystate(H, c_ops)
+                qsave(rho_ss, './steady_state')
+                bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+                bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
+                qsave(bistability_characteristics, './characteristics')
+                if sys_params.qubit_state == 0:
+                    initial_state = rho_dim
+                else:
+                    initial_state = rho_bright
+        else:
+            initial_state = tensor(qeye(c_levels), basis(t_levels, sys_params.qubit_state))
 
     a = tensor(destroy(sys_params.c_levels), qeye(sys_params.t_levels))
     sm = tensor(qeye(sys_params.c_levels), destroy(sys_params.t_levels))
