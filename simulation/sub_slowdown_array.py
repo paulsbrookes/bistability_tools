@@ -42,21 +42,20 @@ if __name__ == '__main__':
 		shutil.copy2(file, dest_dir)
 
 
-    n_threads = 48
-
-    content = "#!/bin/bash -l\n\n" \
+    content = "#! /bin/bash \n\n" \
     "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
     "# software stack under SGE.\n\n" \
     "# 1. Force bash as the executing shell.\n" \
     "#$ -S /bin/bash\n\n" \
+    "#$ -t 1-307\n" \
     "# 2. Request ten minutes of wallclock time (format hours:minutes:seconds).\n" \
-    "#$ -l h_rt=12:0:0\n\n" \
+    "#$ -l h_rt=0:10:0\n\n" \
     "# 3. Request 1 gigabyte of RAM for each core/thread\n" \
-    "#$ -l mem=0.5G\n\n" \
+    "#$ -l mem=1G\n\n" \
     "# 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)\n" \
-    "#$ -l tmpfs=0.5G\n\n" \
+    "#$ -l tmpfs=1G\n\n" \
     "# 6. Select 1 thread.\n" \
-    "#$ -pe mpi " + str(n_threads) + " \n\n" \
+    "#$ -pe smp 1\n\n" \
     "# 7. Set the working directory to somewhere in your scratch space. This is\n" \
     "# a necessary step with the upgraded software stack as compute nodes cannot\n" \
     "# write to \$HOME.\n" \
@@ -69,13 +68,13 @@ if __name__ == '__main__':
     "conda activate bistable\n" \
     "module load gsl/2.4/gnu-4.9.2\n\n" \
     "# 8. Run the application.\n" \
-    "mpiexec -n " + str(n_threads) + "  python spectrum.py " + stack_directory
+    "python slowdown_array.py " + stack_directory + " $SGE_TASK_ID"
 
     text_file = open("./submit.sh", "w")
     text_file.write(content)
     text_file.close()
 
-    n_rounds = 5
+    n_rounds = 1
     round_names = [stack_name+"_"+str(i) for i in range(n_rounds)]
     subprocess.call(["qsub","-N",round_names[0], "./submit.sh"])
     for i in range(1,n_rounds):

@@ -3,6 +3,7 @@ import argparse
 import shutil
 import subprocess
 import pandas as pd
+import glob
 
 
 if __name__ == '__main__':
@@ -24,20 +25,24 @@ if __name__ == '__main__':
 
     if os.path.exists(stack_directory):
         if resume:
-            os.remove(stack_directory+'/register.csv')
-            print('Deleted register and resuming.')
+	    try:
+            	os.remove(stack_directory+'/register.csv')
+            	print('Deleted register and resuming.')
+	    except:
+                print('Resuming.')
         else:
             raise RuntimeError(stack_directory + ' already exists but resume = False.')
     else:
         os.mkdir(stack_directory)
-        shutil.copyfile('stack.csv', stack_directory+'/stack.csv')
-        shutil.copyfile('spectrum.py', stack_directory+'/spectrum.py')
-        shutil.copyfile('slowdown.py', stack_directory + '/slowdown.py')
-        shutil.copyfile('sub_slowdown.py', stack_directory+'/sub_slowdown.py')
-        shutil.copyfile('sub_spectrum.py', stack_directory+'/sub_spectrum.py')
-        #shutil.copytree('tools', stack_directory+'/tools')
+	source_dir = '.'
+	dest_dir = stack_directory
+	files = glob.iglob(os.path.join(source_dir, "*.py"))
+	for file in files:
+	    if os.path.isfile(file):
+		shutil.copy2(file, dest_dir)
 
-    n_threads = 256
+
+    n_threads = 308
 
     content = "#!/bin/bash -l\n\n" \
     "# Batch script to run an OpenMP threaded job on Legion with the upgraded\n" \
@@ -45,9 +50,9 @@ if __name__ == '__main__':
     "# 1. Force bash as the executing shell.\n" \
     "#$ -S /bin/bash\n\n" \
     "# 2. Request ten minutes of wallclock time (format hours:minutes:seconds).\n" \
-    "#$ -l h_rt=12:0:0\n\n" \
+    "#$ -l h_rt=0:10:0\n\n" \
     "# 3. Request 1 gigabyte of RAM for each core/thread\n" \
-    "#$ -l mem=1.0G\n\n" \
+    "#$ -l mem=1G\n\n" \
     "# 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)\n" \
     "#$ -l tmpfs=0.5G\n\n" \
     "# 6. Select 1 thread.\n" \
@@ -61,8 +66,8 @@ if __name__ == '__main__':
     "module load compilers/gnu\n" \
     "module unload mpi/intel/2017/update1/intel\n" \
     "module load mpi/openmpi/1.10.1/gnu-4.9.2\n" \
-    "module load python2/recommended\n" \
-    "module load mpi4py/2.0.0/python2\n\n" \
+    "conda activate bistable\n" \
+    "module load gsl/2.4/gnu-4.9.2\n\n" \
     "# 8. Run the application.\n" \
     "mpiexec -n " + str(n_threads) + "  python slowdown.py " + stack_directory
 

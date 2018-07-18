@@ -1,7 +1,6 @@
 import os
 import argparse
 import shutil
-import subprocess
 import pandas as pd
 
 
@@ -22,22 +21,24 @@ if __name__ == '__main__':
 
     stack_directory = output_directory + '/' + stack_name
 
+    print('hello')
+    print(stack_directory)
+    print('hello')
+
     if os.path.exists(stack_directory):
-        if resume:
-            os.remove(stack_directory+'/register.csv')
-            print('Deleted register and resuming.')
-        else:
+        if not resume:
             raise RuntimeError(stack_directory + ' already exists but resume = False.')
     else:
+        if not os.path.exists(output_directory):
+            os.mkdir(output_directory)
         os.mkdir(stack_directory)
         shutil.copyfile('stack.csv', stack_directory+'/stack.csv')
-        shutil.copyfile('spectrum.py', stack_directory+'/spectrum.py')
-        shutil.copyfile('slowdown_liouvillian.py', stack_directory + '/slowdown_liouvillian.py')
-        shutil.copyfile('pang_liouvillian.py', stack_directory+'/pang_liouvillian.py')
+        shutil.copyfile('slowdown_liouvillian_alt.py', stack_directory + '/slowdown_liouvillian_alt.py')
+        shutil.copyfile('workstation_liouvillian_changwoo.py', stack_directory+'/workstation_liouvillian_changwoo.py')
 
     os.chdir(stack_directory)
 
-    command = 'python slowdown_liouvillian.py ' + stack_directory
+    command = 'python slowdown_liouvillian_alt.py ' + stack_directory + ' -e True'
     cwd = os.getcwd()
 
     print('cwd: ' + cwd)
