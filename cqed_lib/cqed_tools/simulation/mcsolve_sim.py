@@ -64,8 +64,9 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True, bistable_
             chosen_state = rho_dim
         else:
             chosen_state = rho_bright
-        sm_expect = expect(rho)
-
+        sm_expect = expect(sm, chosen_state)
+        a_expect = expect(a, chosen_state)
+        initial_state = tensor(coherent(sys_params.c_levels, a_expect), coherent(sys_params.t_levels, sm_expect))
     else:
         initial_state = tensor(basis(sys_params.c_levels, 0), basis(sys_params.t_levels, 0))
 
