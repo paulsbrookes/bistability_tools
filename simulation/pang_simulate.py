@@ -14,7 +14,8 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--resume', default=False, type=str2bool)
     parser.add_argument('-s', '--stack', default='stack.csv', type=str)
     parser.add_argument('-f', '--function', default='spectrum', type=str)
-    parser.add_argument('-b', '--bistable_initial', default=str2bool)
+    parser.add_argument('-b', '--bistable_initial', default=True, type=str2bool)
+    parser.add_argument('-t', '--transformation', default=False, type=str2bool)
     parser.add_argument('-n', '--n_threads', default=72, type=int)
     args = parser.parse_args()
     output_directory = args.output
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     function = args.function
     bistable_initial = args.bistable_initial
     n_threads = args.n_threads
+    transformation = args.transformation
     print('In pang_simulate.py we have bistable_intitial = ' + str(bistable_initial))
 
     with open(stack_path, 'r') as f:
@@ -56,7 +58,7 @@ if __name__ == '__main__':
 
     command = 'mpiexec -n ' + str(n_threads) + ' python ' + function + '.py ' + stack_directory
     if function == 'slowdown':
-        command += ' -b ' + str(bistable_initial)
+        command += ' -b ' + str(bistable_initial) + ' -t ' + str(transformation)
     cwd = os.getcwd()
 
     print('cwd: ' + cwd)

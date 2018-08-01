@@ -22,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--method', default='mpi', type=str)
     parser.add_argument('-a', '--avx', default=False, type=str2bool)
     parser.add_argument('-b', '--bistable', default=True, type=str2bool)
+    parser.add_argument('-t', '--transformation', default=False, type=str2bool)
     args = parser.parse_args()
     output_directory = args.output
     output_directory = os.path.abspath(output_directory)
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     method = args.method
     avx = args.avx
     bistable_initial = args.bistable
+    transformation = args.transformation
 
     with open(stack_path, 'r') as f:
         header = f.readline()
@@ -94,7 +96,7 @@ if __name__ == '__main__':
         content += "# 6. Select required number of threads.\n" \
     	"#$ -pe mpi " + str(n_threads) + " \n\n" \
     	"# 8. Run the application.\n" \
-    	"gerun python " + function + ".py " + stack_directory + ' -b ' + str(bistable_initial)
+    	"gerun python " + function + ".py " + stack_directory + ' -b ' + str(bistable_initial) + ' -t ' + str(transformation)
     elif method == 'array':
         content += "#$ -t 1-" + str(n_rows) + "\n" \
     	"#$ -pe smp 1\n" \
