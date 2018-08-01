@@ -56,7 +56,7 @@ class ParametersPartial:
 
 
 
-def collapse_operators(params):
+def collapse_operators(params, alpha=0, beta=0):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
     c_ops = []
@@ -72,7 +72,9 @@ def collapse_operators(params):
         #dispersion_op = dispersion_op_gen(params)
         dispersion_op = sm.dag()*sm
         c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
-    return c_ops
+    displacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
+    c_ops_displaced = [displacement.dag()*c_op*displacement for c_op in c_ops]
+    return c_ops_displaced
 
 
 def charge_dispersion_calc(level, Ec, Ej):
@@ -219,7 +221,7 @@ def hamiltonian(params, transmon=True, alpha=0, beta=0):
     else:
         b = tensor(qeye(params.c_levels), destroy(params.t_levels))
         H += (params.f01 - params.fd)*b.dag()*b + params.g*(a*b.dag() + a.dag()*b)
-    diplacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
+    displacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
     return displacement.dag()*H*displacement
 
 
