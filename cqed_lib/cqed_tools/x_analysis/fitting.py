@@ -174,17 +174,22 @@ def iq_fitter(path, t0_sweep=[10, 15, 6], t_end_sweep=[200, 200, 1], state='up')
     trial_popt = np.zeros([n_runs, start_times.shape[0], 5])
 
     for i in range(n_runs):
-        #print(i)
         spec_run = down.iloc[i][150:199]
         spec_point = np.mean(spec_run)
         spectrum[i] = spec_point
         for j, t0 in enumerate(start_times):
             run = diff.iloc[i][t0:t_end]
+
             popt, pcov = fit_data(run, N=10000)
             trial_popt[i, j, :] = popt
             variances[i, j] = np.abs(pcov[4, 4])
             trial_t_constants[i, j] = popt[4]
         #print(variances[i,:], trial_t_constants[i,:], np.sqrt(variances[i,:])/trial_t_constants[i,:])
+
+            popt, pcov = fit_data(run, N=100)
+            trial_popt[i, j, :] = popt
+            variances[i, j] = pcov[4, 4]
+            trial_t_constants[i, j] = popt[4]
 
     percentage_deviation = np.sqrt(variances) / trial_t_constants
     min_indices = np.nanargmin(percentage_deviation, axis=1)
@@ -289,8 +294,13 @@ def iq_fitter_aside(path, t0_sweep=[10, 15, 6], t_end_sweep=[200, 200, 1], state
     return frequencies, t_constants, percentage_deviation, trial_t_constants, spectrum, best_popt, trial_popt
 
 
+<<<<<<< HEAD
 def plot_time_constants(combined, combined_errors, axes=None, loc=0, fmt='-o', ls='-', marker='o', show_errors=True):
     if axes is None:
+=======
+def plot_time_constants(combined, combined_errors, ax=None, loc=0, fmt='-o', ls='-', marker='o', show_errors=True):
+    if ax is None:
+>>>>>>> 550986caa297d7468be57b16a637da045e56ef76
         mpl.rcParams['figure.figsize'] = (12, 8)
 
         font = {'weight': 'normal',
@@ -376,6 +386,7 @@ def df_to_da(df):
 
 
 def fit_data(run, N=10):
+<<<<<<< HEAD
     if False:
         t0 = run.index[0]
         t_end = run.index[-1]
@@ -392,6 +403,19 @@ def fit_data(run, N=10):
         end = real_smooth[-1] + 1j * imag_smooth[-1]
         t0 = times[0]
         t_end = times[-1]
+=======
+    t0 = run.index[0]
+    t_end = run.index[-1]
+    start = np.mean(run[t0:t0 + 0.5])
+    end = np.mean(run[t_end - 0.5:t_end])
+    if False:
+        y_noisy = np.hstack([run.real, run.imag])
+        times = run.index
+    else:
+        y_noisy = np.hstack([np.convolve(run.real, np.ones((N,)) / N, mode='valid'),
+                             np.convolve(run.imag, np.ones((N,)) / N, mode='valid')])
+        times = np.convolve(run.index, np.ones((N,)) / N, mode='valid')
+>>>>>>> 550986caa297d7468be57b16a637da045e56ef76
     t_tiled = np.tile(times, 2)
 
     ar = end.real
@@ -405,7 +429,11 @@ def fit_data(run, N=10):
     try:
         popt, pcov = curve_fit(f=decay_flat, xdata=t_tiled, ydata=y_noisy, p0=[ar, ai, br, bi, T])
     except:
+<<<<<<< HEAD
         print(run.index[0],run.index[-1])
+=======
+        print('Fitting failed.')
+>>>>>>> 550986caa297d7468be57b16a637da045e56ef76
         # return ar, ai, br, bi, T
         popt, pcov = np.nan, np.nan
     return popt, pcov

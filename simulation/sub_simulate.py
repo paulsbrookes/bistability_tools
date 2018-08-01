@@ -6,6 +6,10 @@ import pandas as pd
 import glob
 
 
+def str2bool(v):
+    return v.lower() in ('yes', 'true', 'True', 't', 'T', '1', 'Y', 'y')
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Specify output directory.')
@@ -17,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--n_cycles', default=5, type=int)
     parser.add_argument('-m', '--method', default='mpi', type=str)
     parser.add_argument('-a', '--avx', default=False, type=str2bool)
-    parser.add_argument('-b', '--bistsable', default=True, type=str2bool)
+    parser.add_argument('-b', '--bistable', default=True, type=str2bool)
     args = parser.parse_args()
     output_directory = args.output
     output_directory = os.path.abspath(output_directory)
@@ -28,6 +32,7 @@ if __name__ == '__main__':
     n_cycles = args.n_cycles
     method = args.method
     avx = args.avx
+    bistable_initial = args.bistable
 
     with open(stack_path, 'r') as f:
         header = f.readline()
