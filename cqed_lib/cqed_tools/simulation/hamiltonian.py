@@ -209,7 +209,7 @@ def coupling_hamiltonian_gen(params):
     return coupling_hamiltonian
 
 
-def hamiltonian(params, transmon=True):
+def hamiltonian(params, transmon=True, alpha=0, beta=0):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     H = (params.fc - params.fd) * a.dag() * a + params.eps * (a + a.dag())
     if transmon is True:
@@ -219,7 +219,8 @@ def hamiltonian(params, transmon=True):
     else:
         b = tensor(qeye(params.c_levels), destroy(params.t_levels))
         H += (params.f01 - params.fd)*b.dag()*b + params.g*(a*b.dag() + a.dag()*b)
-    return H
+    diplacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
+    return displacement.dag()*H*displacement
 
 
 def hamiltonian_eliminated(params):
