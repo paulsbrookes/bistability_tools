@@ -11,14 +11,14 @@ def iq_loader(path):
 
         f = h5py.File(hdf_files[0], 'r')
 
-        idf = pd.DataFrame(f['Traces']['daqbox - CH2 In DC I'][:, 0, :].T)
+        idf = pd.DataFrame(f['Traces']['daqbox - CH1 In DC I'][:, 0, :].T)
         n_samples = idf.shape[1]
-        dt = f['Traces']['daqbox - CH2 In DC I_t0dt'][0, 1]
+        dt = f['Traces']['daqbox - CH1 In DC I_t0dt'][0, 1]
         idf.columns = dt * np.arange(n_samples)
 
-        qdf = pd.DataFrame(f['Traces']['daqbox - CH2 In DC Q'][:, 0, :].T)
+        qdf = pd.DataFrame(f['Traces']['daqbox - CH1 In DC Q'][:, 0, :].T)
         n_samples = qdf.shape[1]
-        dt = f['Traces']['daqbox - CH2 In DC Q_t0dt'][0, 1]
+        dt = f['Traces']['daqbox - CH1 In DC Q_t0dt'][0, 1]
         qdf.columns = dt * np.arange(n_samples)
 
         frequencies = frequencies_gen(f)
@@ -26,12 +26,12 @@ def iq_loader(path):
         f.close()
 
     else:
-        with open(path + '/I.txt', 'r') as f:
+        with open(glob.glob(path + '/*I.txt')[0], 'r') as f:
             idf = pd.read_csv(f, skiprows=5, sep='\t')
-        with open(path + '/Q.txt', 'r') as f:
+        with open(glob.glob(path + '/*Q.txt')[0], 'r') as f:
             qdf = pd.read_csv(f, skiprows=5, sep='\t')
 
-        with open(path + '/I.txt', 'r') as f:
+        with open(glob.glob(path + '/*I.txt')[0], 'r') as f:
             a = f.readline()
             a = f.readline()
             a = f.readline()

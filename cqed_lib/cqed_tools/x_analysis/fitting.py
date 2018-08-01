@@ -103,18 +103,6 @@ def decay_flat(t, ar, ai, br, bi, T):
     return decay(t[0:index], ar, ai, br, bi, T).flatten()
 
 
-def decay(t, ar, ai, br, bi, T):
-    signal_r = ar - br * np.exp(-t / T)
-    signal_i = ai - bi * np.exp(-t / T)
-    signal = np.array([signal_r, signal_i])
-    return signal
-
-
-def decay_flat(t, ar, ai, br, bi, T):
-    index = int(len(t) / 2)
-    return decay(t[0:index], ar, ai, br, bi, T).flatten()
-
-
 def fit_and_plot(paths, axes=0, t_end_sweep=[200, 200, 1]):
     measured_powers = [float(path) for path in paths]
 
@@ -186,7 +174,76 @@ def iq_fitter(path, t0_sweep=[10, 15, 6], t_end_sweep=[200, 200, 1], state='up')
     trial_popt = np.zeros([n_runs, start_times.shape[0], 5])
 
     for i in range(n_runs):
-        spec_run = down.iloc[i][250:299]
+        #print(i)
+        spec_run = down.iloc[i][150:199]
+        spec_point = np.mean(spec_run)
+        spectrum[i] = spec_point
+        for j, t0 in enumerate(start_times):
+            run = diff.iloc[i][t0:t_end]
+            popt, pcov = fit_data(run, N=10000)
+            trial_popt[i, j, :] = popt
+            variances[i, j] = np.abs(pcov[4, 4])
+            trial_t_constants[i, j] = popt[4]
+        #print(variances[i,:], trial_t_constants[i,:], np.sqrt(variances[i,:])/trial_t_constants[i,:])
+
+    percentage_deviation = np.sqrt(variances) / trial_t_constants
+    min_indices = np.nanargmin(percentage_deviation, axis=1)
+    best_popt = trial_popt[np.arange(min_indices.shape[0]), min_indices]
+
+    t_constants = np.array([trial_t_constants[k, min_index] for k, min_index in enumerate(min_indices)])
+
+    return frequencies, t_constants, percentage_deviation, trial_t_constants, spectrum, best_popt, trial_popt
+
+
+def iq_fitter_aside(path, t0_sweep=[10, 15, 6], t_end_sweep=[200, 200, 1], state='up'):
+    with open(path + '/pulse_length.txt') as f:
+        pulse_length = f.readline()
+    pulse_length = float(pulse_length)
+
+    with open(path + '/pulse_length.txt') as f:
+        info = f.readlines()
+    pulse_length = info[0].split('\n')[0]
+    pulse_length = float(pulse_length)
+
+    if len(info) > 1:
+        if info[1] == 'variation':
+            down, up = iq_loader_variation(path)
+    else:
+        down, up = iq_loader(path)
+
+    if os.path.exists(path + '/flags.txt'):
+        flags = pd.read_csv(path + '/flags.txt', header=None)
+        flags = flags.values[0, :]
+        down = down.drop(down.index[flags])
+        up = up.drop(up.index[flags])
+
+    if state == 'up':
+        diff = up
+    elif state == 'down':
+        diff = down
+    elif state == 'diff':
+        diff = up - down
+    else:
+        print('Faulty state input.')
+
+    n_runs = down.shape[0]
+
+    frequencies = down.index
+
+    t_end = pulse_length
+
+    start_times = np.linspace(t0_sweep[0], t0_sweep[1], t0_sweep[2], endpoint=True)
+    n_trials = start_times.shape[0]
+
+    t_constants = np.zeros(n_runs)
+    spectrum = np.zeros(n_runs, dtype=np.complex128)
+
+    variances = np.zeros([n_runs, n_trials])
+    trial_t_constants = np.zeros([n_runs, n_trials])
+    trial_popt = np.zeros([n_runs, start_times.shape[0], 5])
+
+    for i in range(n_runs):
+        spec_run = down.iloc[i][150:199]
         spec_point = np.mean(spec_run)
         spectrum[i] = spec_point
         for j, t0 in enumerate(start_times):
@@ -198,8 +255,14 @@ def iq_fitter(path, t0_sweep=[10, 15, 6], t_end_sweep=[200, 200, 1], state='up')
             run = diff.iloc[i][t0:t_end]
             start = np.mean(run[t0:t0 + 0.5])
             end = np.mean(run[t_end - 0.5:t_end])
-            y_noisy = np.hstack([run.real, run.imag])
-            times = run.index
+            if True:
+                y_noisy = np.hstack([run.real, run.imag])
+                times = run.index
+            else:
+                N = 10
+                y_noisy = np.hstack([np.convolve(run.real, np.ones((N,)) / N, mode='valid'),
+                                     np.convolve(run.imag, np.ones((N,)) / N, mode='valid')])
+                times = np.convolve(run.index, np.ones((N,)) / N, mode='valid')
             t_tiled = np.tile(run.index, 2)
 
             ar = end.real
@@ -226,8 +289,8 @@ def iq_fitter(path, t0_sweep=[10, 15, 6], t_end_sweep=[200, 200, 1], state='up')
     return frequencies, t_constants, percentage_deviation, trial_t_constants, spectrum, best_popt, trial_popt
 
 
-def plot_time_constants(combined, combined_errors, ax=None):
-    if ax is None:
+def plot_time_constants(combined, combined_errors, axes=None, loc=0, fmt='-o', ls='-', marker='o', show_errors=True):
+    if axes is None:
         mpl.rcParams['figure.figsize'] = (12, 8)
 
         font = {'weight': 'normal',
@@ -235,7 +298,7 @@ def plot_time_constants(combined, combined_errors, ax=None):
 
         matplotlib.rc('font', **font)
 
-        fig, ax = plt.subplots(1, 1)
+        fig, axes = plt.subplots(1, 1)
 
     n_runs = combined.shape[0]
 
@@ -244,26 +307,34 @@ def plot_time_constants(combined, combined_errors, ax=None):
         pruned_errors = combined_errors.iloc[i].dropna()
         # combined.iloc[i].dropna().plot(ax=axes)
         # axes.scatter(combined.iloc[i].index, combined.iloc[i])
-        ax.errorbar(pruned_constants.index, pruned_constants, yerr=pruned_errors, fmt='-o')
-    ax.legend(combined.index, loc=2, title='Power (dBm)')
-    ax.set_xlabel('Drive frequency / GHz')
-    ax.set_ylabel(r'Time constant / us')
+        if show_errors:
+            axes.errorbar(pruned_constants.index, pruned_constants, yerr=pruned_errors, fmt=fmt)
+        else:
+            axes.plot(pruned_constants.index, pruned_constants, marker=marker, ls=ls)
+    axes.legend(combined.index, loc=loc, title='Power (dBm)')
+    axes.set_xlabel('Drive frequency / GHz')
+    axes.set_ylabel(r'Time constant / us')
 
 
-def group_fitter(paths, state='diff', t0_sweep=[10, 20, 3]):
+def group_fitter(paths, state='diff', t0_sweep=[10, 20, 3], new=True):
     measured_powers = [float(path) for path in paths]
 
     frames = []
     error_frames = []
     for power, path in zip(measured_powers, paths):
+        print(power)
         subdirs = [x[0] for x in os.walk(path)]
         if len(subdirs) != 1:
             subdirs = subdirs[1:]
         subframes = []
         error_subframes = []
         for subdir in subdirs:
-            frequencies, t_constants, percentage_deviation, trial_t_constants, spectrum, best_popt, trial_popt = iq_fitter(
-                subdir, t0_sweep=t0_sweep, t_end_sweep=[200, 200, 1], state=state)
+            if new:
+                frequencies, t_constants, percentage_deviation, trial_t_constants, spectrum, best_popt, trial_popt = iq_fitter(
+                    subdir, t0_sweep=t0_sweep, t_end_sweep=[200, 200, 1], state=state)
+            else:
+                frequencies, t_constants, percentage_deviation, trial_t_constants, spectrum, best_popt, trial_popt = iq_fitter_aside(
+                    subdir, t0_sweep=t0_sweep, t_end_sweep=[200, 200, 1], state=state)
             trial_errors = trial_t_constants * percentage_deviation
             # indices = np.nanargmin(trial_errors, axis=1)
             indices = np.nanargmin(percentage_deviation, axis=1)
@@ -302,3 +373,39 @@ def group_fitter(paths, state='diff', t0_sweep=[10, 20, 3]):
 def df_to_da(df):
     da = xr.DataArray(df.values, coords=[df.index, df.columns], dims=['power', 'fd'])
     return da
+
+
+def fit_data(run, N=10):
+    if False:
+        t0 = run.index[0]
+        t_end = run.index[-1]
+        y_noisy = np.hstack([run.real, run.imag])
+        times = run.index
+        start = np.mean(run[t0:t0 + 5.0])
+        end = np.mean(run[t_end - 5.0:t_end])
+    else:
+        real_smooth = np.convolve(run.real, np.ones((N,)) / N, mode='valid')
+        imag_smooth = np.convolve(run.imag, np.ones((N,)) / N, mode='valid')
+        y_noisy = np.hstack([real_smooth, imag_smooth])
+        times = np.convolve(run.index, np.ones((N,)) / N, mode='valid')
+        start = real_smooth[0] + 1j * imag_smooth[0]
+        end = real_smooth[-1] + 1j * imag_smooth[-1]
+        t0 = times[0]
+        t_end = times[-1]
+    t_tiled = np.tile(times, 2)
+
+    ar = end.real
+    ai = end.imag
+    T = 10
+    br = np.exp(t0 / T) * (ar - start.real)
+    bi = np.exp(t0 / T) * (ai - start.imag)
+
+    # popt, pcov = curve_fit(f=decay_flat, xdata=t_tiled, ydata=y_noisy, p0=[ar, ai, br, bi, T])
+
+    try:
+        popt, pcov = curve_fit(f=decay_flat, xdata=t_tiled, ydata=y_noisy, p0=[ar, ai, br, bi, T])
+    except:
+        print(run.index[0],run.index[-1])
+        # return ar, ai, br, bi, T
+        popt, pcov = np.nan, np.nan
+    return popt, pcov

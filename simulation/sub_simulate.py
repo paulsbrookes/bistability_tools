@@ -10,13 +10,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Specify output directory.')
     parser.add_argument('-o', '--output', default='..', type=str)
-    parser.add_argument('-r', '--resume', default=False, type=bool)
+    parser.add_argument('-r', '--resume', default=False, type=str2bool)
     parser.add_argument('-s', '--stack', default='stack.csv', type=str)
     parser.add_argument('-f', '--function', default='slowdown', type=str)
     parser.add_argument('-n', '--n_threads', default=32, type=int)
     parser.add_argument('-c', '--n_cycles', default=5, type=int)
     parser.add_argument('-m', '--method', default='mpi', type=str)
-    parser.add_argument('-a', '--avx', default=False, type=bool)
+    parser.add_argument('-a', '--avx', default=False, type=str2bool)
+    parser.add_argument('-b', '--bistsable', default=True, type=str2bool)
     args = parser.parse_args()
     output_directory = args.output
     output_directory = os.path.abspath(output_directory)
@@ -38,10 +39,10 @@ if __name__ == '__main__':
 
     if os.path.exists(stack_directory):
         if resume:
-	    try:
-            	os.remove(stack_directory+'/register.csv')
+            try:
+                os.remove(stack_directory+'/register.csv')
             	print('Deleted register and resuming.')
-	    except:
+	        except:
                 print('Resuming.')
         else:
             raise RuntimeError(stack_directory + ' already exists but resume = False.')
@@ -88,7 +89,7 @@ if __name__ == '__main__':
         content += "# 6. Select required number of threads.\n" \
     	"#$ -pe mpi " + str(n_threads) + " \n\n" \
     	"# 8. Run the application.\n" \
-    	"gerun python " + function + ".py " + stack_directory
+    	"gerun python " + function + ".py " + stack_directory + ' -b ' + str(bistable_initial)
     elif method == 'array':
         content += "#$ -t 1-" + str(n_rows) + "\n" \
     	"#$ -pe smp 1\n" \
