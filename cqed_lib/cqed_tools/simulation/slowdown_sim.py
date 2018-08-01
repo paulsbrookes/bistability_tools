@@ -21,6 +21,22 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
     sys_params = stack_frame.iloc[job_index]
     frame_params = sys_params
 
+    if transmon is True:
+        packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec,
+                                     frame_params.eps,
+                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                     frame_params.n_c)
+        H = hamiltonian(packaged_params, transmon=transmon)
+        c_ops = collapse_operators(packaged_params)
+    else:
+        packaged_params = Parameters(frame_params.fc, None, frame_params.g, None, frame_params.eps,
+                                     frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
+                                     frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
+                                     frame_params.n_c, frame_params.f01)
+        H = hamiltonian(packaged_params, transmon=transmon)
+        c_ops = collapse_operators(packaged_params)
+
     a = tensor(destroy(sys_params.c_levels), qeye(sys_params.t_levels))
     sm = tensor(qeye(sys_params.c_levels), destroy(sys_params.t_levels))
 
@@ -38,7 +54,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
     if os.path.exists('./state_checkpoint.qu'):
         print('Loading state checkpoint for job_index = '+str(sys_params.job_index))
         initial_state = qload('./state_checkpoint')
-        hamiltonian = qload('./hamiltonian')
+        H = qload('./hamiltonian')
         c_ops = qload('./c_ops')
         previous_results = pd.read_csv('./results.csv')
         delta_t = 1.0 * sys_params.end_time / (sys_params.snapshots - 1)
@@ -56,8 +72,10 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
                 rho_ss = qload('steady_state')
                 bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
                 if sys_params.qubit_state == 0:
+                    print('Dim initial state.')
                     initial_state = rho_dim
                 else:
+                    print('Bright initial state.')
                     initial_state = rho_bright
                 bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
                 qsave(bistability_characteristics, './characteristics')
@@ -69,14 +87,25 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
                 bistability_characteristics = [bistability, rho_dim, rho_bright, characteristics]
                 qsave(bistability_characteristics, './characteristics')
                 if sys_params.qubit_state == 0:
+                    print('Dim initial state.')
                     initial_state = rho_dim
                 else:
+                    print('Bright initial state.')
                     initial_state = rho_bright
             if transformation:
                 alpha = 0.5*(expect(a,rho_dim)+expect(a,rho_bright))
+                beta = 0.0
             else:
                 alpha = 0.0
+                beta = 0.0
             qsave(alpha, 'alpha')
+            qsave(beta, 'beta')
+            displacement = tensor(displace(sys_params.c_levels, alpha), displace(sys_params.t_levels, beta))
+            initial_a = expect(a, initial_state)
+            initial_state = displacement.dag()*initial_state*displacement
+            initial_state /= initial_state.tr()
+            initial_a_displaced = expect(a, initial_state)
+            print(initial_a, initial_a_displaced, alpha)
         else:
             print('Choosing initial state in the transmon basis.')
             initial_state = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, sys_params.qubit_state))
@@ -98,7 +127,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             H = hamiltonian(packaged_params, transmon=transmon, alpha=alpha)
             c_ops = collapse_operators(packaged_params, alpha=alpha)
 
-        qsave(hamiltonian, 'hamiltonian')
+        qsave(H, 'hamiltonian')
         qsave(c_ops, 'c_ops')
 
     options.store_final_state = True
@@ -116,6 +145,8 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
     if bistability or not bistable_initial:
+        print('hermitian',H.isherm)
+        print('Going into the mesolve function we have a_op_re = ' + str(expect(e_ops['a_op_re'],initial_state)))
         output = mesolve_checkpoint(H, initial_state, snapshot_times, c_ops, e_ops, save, directory, options=options)
 
     os.chdir(cwd)
@@ -228,6 +259,7 @@ def slowdown_sim_backup(job_index, output_directory='./results', bistable_initia
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
 
     if bistability or not bistable_initial:
+        print(H.isherm)
         output = mesolve_checkpoint(H, initial_state, snapshot_times, c_ops, e_ops, save, directory, options=options)
 
     os.chdir(cwd)
