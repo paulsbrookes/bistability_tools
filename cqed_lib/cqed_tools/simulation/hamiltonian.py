@@ -57,8 +57,8 @@ class ParametersPartial:
 
 
 def collapse_operators(params, alpha=0, beta=0):
-    a = tensor(destroy(params.c_levels), qeye(params.t_levels))
-    sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
+    a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
+    sm = tensor(qeye(params.c_levels), destroy(params.t_levels)) + beta
     c_ops = []
     if params.kappa != 0:
         c_ops.append(np.sqrt(params.kappa*(params.n_c+1)) * a)
@@ -72,9 +72,7 @@ def collapse_operators(params, alpha=0, beta=0):
         #dispersion_op = dispersion_op_gen(params)
         dispersion_op = sm.dag()*sm
         c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
-    displacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
-    c_ops_displaced = [displacement.dag()*c_op*displacement for c_op in c_ops]
-    return c_ops_displaced
+    return c_ops
 
 
 def charge_dispersion_calc(level, Ec, Ej):
@@ -194,13 +192,13 @@ def high_energies_calc_single(idx, params):
 high_energies_calc = np.vectorize(high_energies_calc_single)
 
 
-def coupling_hamiltonian_gen(params):
+def coupling_hamiltonian_gen(params, alpha=0):
     lower_levels = np.arange(0,params.t_levels-1)
     upper_levels = np.arange(1,params.t_levels)
     q = -params.Ej / (2 * params.Ec)
     coupling_array = coupling_calc(lower_levels,upper_levels,q)
     coupling_array = coupling_array/coupling_array[0]
-    a = tensor(destroy(params.c_levels), qeye(params.t_levels))
+    a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
     down_transmon_transitions = 0
     for i, coupling in enumerate(coupling_array):
         down_transmon_transitions += coupling*basis(params.t_levels,i)*basis(params.t_levels,i+1).dag()
@@ -212,17 +210,17 @@ def coupling_hamiltonian_gen(params):
 
 
 def hamiltonian(params, transmon=True, alpha=0, beta=0):
-    a = tensor(destroy(params.c_levels), qeye(params.t_levels))
+    a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
     H = (params.fc - params.fd) * a.dag() * a + params.eps * (a + a.dag())
     if transmon is True:
         transmon_hamiltonian = transmon_hamiltonian_gen(params)
-        coupling_hamiltonian = coupling_hamiltonian_gen(params)
+        coupling_hamiltonian = coupling_hamiltonian_gen(params, alpha=alpha)
         H += transmon_hamiltonian + coupling_hamiltonian
     else:
         b = tensor(qeye(params.c_levels), destroy(params.t_levels))
         H += (params.f01 - params.fd)*b.dag()*b + params.g*(a*b.dag() + a.dag()*b)
-    displacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
-    return displacement.dag()*H*displacement
+    #displacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
+    return H
 
 
 def hamiltonian_eliminated(params):

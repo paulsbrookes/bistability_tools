@@ -118,15 +118,15 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
                                          frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                          frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                          frame_params.n_c)
-            H = hamiltonian(packaged_params, transmon=transmon, alpha=alpha)
-            c_ops = collapse_operators(packaged_params, alpha=alpha)
+            H = hamiltonian(packaged_params, transmon=transmon, alpha=alpha, beta=beta)
+            c_ops = collapse_operators(packaged_params, alpha=alpha, beta=beta)
         else:
             packaged_params = Parameters(frame_params.fc, None, frame_params.g, None, frame_params.eps,
                                          frame_params.fd, frame_params.kappa, frame_params.gamma, frame_params.t_levels,
                                          frame_params.c_levels, frame_params.gamma_phi, kappa_phi, frame_params.n_t,
                                          frame_params.n_c, frame_params.f01)
-            H = hamiltonian(packaged_params, transmon=transmon, alpha=alpha)
-            c_ops = collapse_operators(packaged_params, alpha=alpha)
+            H = hamiltonian(packaged_params, transmon=transmon, alpha=alpha, beta=beta)
+            c_ops = collapse_operators(packaged_params, alpha=alpha, beta=beta)
 
         qsave(H, 'hamiltonian')
         qsave(c_ops, 'c_ops')
