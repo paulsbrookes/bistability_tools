@@ -46,7 +46,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
         os.makedirs(directory)
     cwd = os.getcwd()
     os.chdir(directory)
-    print(directory)
+    print('The working directory for the current job index is ' + str(directory))
     sys_params.to_csv('settings.csv')
 
     options = Options(nsteps=2000000000)
@@ -72,6 +72,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             if os.path.exists('./steady_state.qu'):
                 rho_ss = qload('steady_state')
                 bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+                print(bistability,rho_bright)
                 if sys_params.qubit_state == 0:
                     print('Dim initial state.')
                     initial_state = rho_dim
@@ -89,7 +90,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
                 else:
                     print('Bright initial state.')
                     initial_state = rho_bright
-            if transformation:
+            if transformation and bistability:
                 alpha_bright = expect(a,rho_bright)
                 alpha_dim = expect(a,rho_dim)
                 bistability_characteristics['alpha_bright'] = alpha_bright
@@ -102,16 +103,10 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             bistability_characteristics['bistability'] = bistability
             bistability_characteristics['rho_dim'] = rho_dim
             bistability_characteristics['rho_bright'] = rho_bright
-            bistability_characteristics['characteristics']
+            bistability_characteristics['characteristics'] = characteristics
             bistability_characteristics['alpha'] = alpha
             bistability_characteristics['beta'] = beta
             qsave(bistability_characteristics, './characteristics')
-            displacement = tensor(displace(sys_params.c_levels, alpha), displace(sys_params.t_levels, beta))
-            initial_a = expect(a, initial_state)
-            initial_state = displacement.dag()*initial_state*displacement
-            initial_state /= initial_state.tr()
-            initial_a_displaced = expect(a, initial_state)
-            print(initial_a, initial_a_displaced, alpha)
         else:
             print('Choosing initial state in the transmon basis.')
             initial_state = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, sys_params.qubit_state))
