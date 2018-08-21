@@ -109,7 +109,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             qsave(bistability_characteristics, './characteristics')
         else:
             print('Choosing initial state in the transmon basis.')
-            initial_state = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, sys_params.qubit_state))
+            initial_state = tensor(fock_dm(sys_params.c_levels,0), fock_dm(sys_params.t_levels, sys_params.qubit_state))
             bistability = None
 
         if transmon is True:
@@ -144,6 +144,8 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
     e_ops['excitations'] = sm.dag() * sm
     for level in range(sys_params.t_levels):
         e_ops['t_level_' + str(level)] = tensor(qeye(sys_params.c_levels), fock_dm(sys_params.t_levels, level))
+
+    qsave(H,'slowdown_hamiltonian')
 
     if bistability or not bistable_initial:
         print('hermitian',H.isherm)
