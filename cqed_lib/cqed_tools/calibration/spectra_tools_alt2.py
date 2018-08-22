@@ -326,7 +326,7 @@ def save_eigenvalues(eigenvalues, params):
     hdf_append('liouvillian_eigenvalues.h5',df,'eigenvalues')
 
 
-def transmission_calc(args, results, custom=True, method='direct'):
+def transmission_calc(args, results, custom=False, method='direct'):
     fd = args[0]
     params = args[1]
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
