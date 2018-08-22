@@ -24,8 +24,10 @@ class SpectrumOptions:
         self.threshold = threshold
         self.display = display
 
+
 def lin_func(x, a, b):
     return a*x + b
+
 
 def steadystate_occupations_calc(params):
     c_ops = collapse_operators(params)
@@ -37,11 +39,14 @@ def steadystate_occupations_calc(params):
     n_c = expect(a.dag()*a, rho_ss)
     return n_t, n_c
 
+
 def quadratic_func(x, a, b, c):
     return a*(x-b)**2 + c
 
+
 def lorentzian_func(f, A, f_r, Q, c):
     return A*(f_r/Q)/(((f_r/Q)**2 + 4*(f-f_r)**2))**0.5 + c
+
 
 def lorentzian_fit(x, y):
     max_idx = np.argmax(y)
@@ -50,6 +55,7 @@ def lorentzian_fit(x, y):
     f_r_est = x[max_idx]
     popt, pcov = curve_fit(lorentzian_func, x, y, p0=[A_est, f_r_est, Q_est, 0.01])
     return popt, pcov
+
 
 class Parameters:
     def __init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t, n_c):
