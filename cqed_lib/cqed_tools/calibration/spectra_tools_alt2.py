@@ -399,7 +399,7 @@ def sweep(eps, fd_lower, fd_upper, params, threshold, custom, method='direct'):
     return results
 
 
-def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=True, method='direct'):
+def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=False, method='direct'):
     multi_results_dict = dict()
 
     for eps in eps_array:
