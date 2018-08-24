@@ -111,6 +111,8 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             print('Choosing initial state in the transmon basis.')
             initial_state = tensor(fock_dm(sys_params.c_levels,0), fock_dm(sys_params.t_levels, sys_params.qubit_state))
             bistability = None
+            alpha = 0.0
+            beta = 0.0
 
         if transmon is True:
             packaged_params = Parameters(frame_params.fc, frame_params.Ej, frame_params.g, frame_params.Ec,
