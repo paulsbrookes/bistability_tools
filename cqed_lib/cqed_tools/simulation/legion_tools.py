@@ -1163,3 +1163,17 @@ def mpi_allocator(job, args, kwargs):
         job(job_index, *args, **kwargs)
 
         completed = True
+
+
+def eigenstate_check_base(op, state_psi):
+    state_chi = op * state_psi
+    norm = state_chi.norm()
+    if norm == 0.0:
+        metric = 1.0
+    else:
+        metric = state_psi.dag() * state_chi / norm
+        metric = np.abs(metric[0, 0])
+    return metric
+
+
+eigenstate_check = np.vectorize(eigenstate_check_base)

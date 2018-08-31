@@ -262,26 +262,75 @@ def transmission_calc_array(queue, results=None, custom=False, method='direct'):
     # steady_states = parallel_map(transmission_calc, args, num_cpus=1, progress_bar=TextProgressBar())
     steady_states = []
     for arg in tqdm(args):
-        try:
+        #try:
+        if True:
             steady_state = transmission_calc(arg, results, custom=custom, method=method)
-            transmission = steady_state[0]
-            edge_occupation_c = steady_state[1]
-            edge_occupation_c = np.absolute(edge_occupation_c)
-            edge_occupation_t = steady_state[2]
-            edge_occupation_t = np.absolute(edge_occupation_t)
-            state = steady_state[3]
-            new_result = pd.DataFrame(
-                [[arg[1]], [arg[0]], [transmission], [edge_occupation_c], [edge_occupation_t], [state]]).T
-            new_result.columns = ['params', 'fd_points', 'transmissions', 'edge_occupations_c', 'edge_occupations_t', 'states']
-            dtypes = {'params': object, 'fd_points': np.float64, 'transmissions': np.complex, 'edge_occupations_c': np.float64,
-                  'edge_occupations_t': np.float64, 'states': object}
-            new_result = new_result.astype(dtypes)
+            new_result = observables_calc(arg[0],arg[1], steady_state)
             results = pd.concat([results,new_result])
             results = results.sort_values('fd_points')
-        except:
-            print "Unexpected error:", sys.exc_info()[0]
-            print('failed to find steady state at ' + str(arg))
+
+        #except Exception as e:
+        #    print(e)
+        #    #print "Unexpected error:", sys.exc_info()[0]
+        #    print('failed to find steady state at ' + str(arg[1]))
     return results
+
+
+def observables_calc(sweep_param, params, state, index_name='fd_points'):
+
+    a = tensor(destroy(params.c_levels), qeye(params.t_levels))
+    b = tensor(qeye(params.c_levels), destroy(params.t_levels))
+
+    dtypes = OrderedDict()
+    dtypes['params'] = object
+    dtypes['fd_points'] = np.float64
+    dtypes['states'] = object
+
+    e_ops = OrderedDict()
+    e_ops['a'] = a
+    dtypes['a'] = np.complex
+    #e_ops['a_op_re'] = (a + a.dag()) / 2
+    #dtypes['a_op_re'] = np.float64
+    #e_ops['a_op_im'] = -1j * (a - a.dag()) / 2
+    #dtypes['a_op_im'] = np.float64
+    e_ops['photons'] = a.dag() * a
+    dtypes['photons'] = np.float64
+    for level in range(params.c_levels):
+        e_ops['c_level_' + str(level)] = tensor(fock_dm(params.c_levels, level), qeye(params.t_levels))
+        dtypes['c_level_' + str(level)] = np.float64
+    e_ops['b'] = b
+    dtypes['b'] = np.complex
+    #e_ops['sm_op_re'] = (sm.dag() + sm) / 2
+    #dtypes['sm_op_re'] = np.float64
+    #e_ops['sm_op_im'] = -1j * (sm - sm.dag()) / 2
+    #dtypes['sm_op_im'] = np.float64
+    e_ops['excitations'] = b.dag() * b
+    dtypes['excitations'] = np.float64
+    for level in range(params.t_levels):
+        e_ops['t_level_' + str(level)] = tensor(qeye(params.c_levels), fock_dm(params.t_levels, level))
+        dtypes['t_level_' + str(level)] = np.float64
+    e_ops['transmissions'] = a
+    dtypes['transmissions'] = np.complex
+    e_ops['edge_occupations_c'] = tensor(fock_dm(params.c_levels, params.c_levels-1), qeye(params.t_levels))
+    dtypes['edge_occupations_c'] = np.float64
+    e_ops['edge_occupations_t'] = tensor(qeye(params.c_levels), fock_dm(params.t_levels, params.t_levels-1))
+    dtypes['edge_occupations_t'] = np.float64
+
+    observables = OrderedDict()
+    for key, operator in e_ops.items():
+        observables[key] = [expect(operator, state)]
+
+    packaged_observables = pd.DataFrame.from_dict(observables)
+    packaged_observables['params'] = params
+    packaged_observables[index_name] = sweep_param
+    packaged_observables['states'] = state
+    packaged_observables = packaged_observables.astype(dtypes)
+
+    return packaged_observables
+
+
+
+
 
 
 def steadystate_custom(H, c_ops, initial, k=1, eigenvalues=False):
@@ -354,14 +403,7 @@ def transmission_calc(args, results, custom=False, method='direct'):
         except:
             attempts += 1
 
-    rho_c_ss = rho_ss.ptrace(0)
-    rho_t_ss = rho_ss.ptrace(1)
-    c_occupations = rho_c_ss.diag()
-    t_occupations = rho_t_ss.diag()
-    edge_occupation_c = c_occupations[params.c_levels - 1]
-    edge_occupation_t = t_occupations[params.t_levels - 1]
-    transmission = expect(a, rho_ss)
-    return np.array([transmission, edge_occupation_c, edge_occupation_t, rho_ss])
+    return rho_ss
 
 
 def transmission_calc_old(args, results):
