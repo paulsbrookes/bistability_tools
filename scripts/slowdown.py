@@ -11,6 +11,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     output_directory = args.output_directory
     bistable_initial = args.bistable_initial
+    transformation = args.transformation
     args = []
     kwargs = dict()
     kwargs['output_directory'] = output_directory
