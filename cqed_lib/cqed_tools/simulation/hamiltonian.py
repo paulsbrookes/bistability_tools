@@ -209,17 +209,20 @@ def coupling_hamiltonian_gen(params, alpha=0):
     return coupling_hamiltonian
 
 
-def hamiltonian(params, transmon=True, alpha=0, beta=0):
+def hamiltonian(params, transmon=True, alpha=0, beta=0, duffing=False):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
     H = (params.fc - params.fd) * a.dag() * a + params.eps * (a + a.dag())
     if transmon is True:
-        transmon_hamiltonian = transmon_hamiltonian_gen(params)
-        coupling_hamiltonian = coupling_hamiltonian_gen(params, alpha=alpha)
-        H += transmon_hamiltonian + coupling_hamiltonian
+        if duffing:
+            b = tensor(qeye(params.c_levels), destroy(params.t_levels))
+            H += (params.f01 - params.fd)*b.dag()*b + params.g*(a*b.dag() + a.dag()*b) + 0.5*params.u*b.dag()*b.dag()*b*b
+        else:
+            transmon_hamiltonian = transmon_hamiltonian_gen(params)
+            coupling_hamiltonian = coupling_hamiltonian_gen(params, alpha=alpha)
+            H += transmon_hamiltonian + coupling_hamiltonian
     else:
         b = tensor(qeye(params.c_levels), destroy(params.t_levels))
         H += (params.f01 - params.fd)*b.dag()*b + params.g*(a*b.dag() + a.dag()*b)
-    #displacement = tensor(displace(params.c_levels, alpha), displace(params.t_levels, beta))
     return H
 
 
