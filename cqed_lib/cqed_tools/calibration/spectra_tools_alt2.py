@@ -21,6 +21,13 @@ from ..simulation.hamiltonian import *
 from tqdm import tqdm
 import sys
 import h5py
+import copy
+
+
+class SpectroscopyOptions:
+    def __init__(self, duffing=False, transmon=True):
+        self.duffing = duffing
+        self.transmon = transmon
 
 
 class SpectrumOptions:
@@ -225,7 +232,7 @@ def hilbert_interpolation(new_fd_points, results):
     base_params = results['params'].iloc[0]
     params_list = []
     for fd in new_fd_points:
-        new_params = base_params.copy()
+        new_params = copy.deepcopy(base_params)
         new_params.c_levels = int(round(c_interp(fd)))
         new_params.t_levels = int(round(t_interp(fd)))
         params_list.append(new_params)
@@ -253,7 +260,7 @@ def derivative(x, y, n_derivative=1):
     return positions, derivatives
 
 
-def transmission_calc_array(queue, results=None, custom=False, method='direct'):
+def transmission_calc_array(queue, results=None, custom=False, method='direct', options=SpectroscopyOptions()):
     if results is None:
         results = pd.DataFrame([])
     args = []
@@ -264,7 +271,7 @@ def transmission_calc_array(queue, results=None, custom=False, method='direct'):
     for arg in tqdm(args):
         #try:
         if True:
-            steady_state = transmission_calc(arg, results, custom=custom, method=method)
+            steady_state = transmission_calc(arg, results, custom=custom, method=method, options=options)
             new_result = observables_calc(arg[0],arg[1], steady_state)
             results = pd.concat([results,new_result])
             results = results.sort_values('fd_points')
@@ -375,14 +382,14 @@ def save_eigenvalues(eigenvalues, params):
     hdf_append('liouvillian_eigenvalues.h5',df,'eigenvalues')
 
 
-def transmission_calc(args, results, custom=False, method='direct'):
+def transmission_calc(args, results, custom=False, method='direct', options=SpectroscopyOptions()):
     fd = args[0]
     params = args[1]
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
     c_ops = collapse_operators(params)
     params.fd = fd
-    H = hamiltonian(params)
+    H = hamiltonian(params, transmon=options.transmon, duffing=options.duffing)
 
     completed = False
     attempts = 0
@@ -425,10 +432,10 @@ def transmission_calc_old(args, results):
     return np.array([transmission, edge_occupation_c, edge_occupation_t])
 
 
-def sweep(eps, fd_lower, fd_upper, params, threshold, custom, method='direct'):
+def sweep(eps, fd_lower, fd_upper, params, threshold, custom, method='direct', options=SpectroscopyOptions()):
     params.eps = eps
     fd_points = np.linspace(fd_lower, fd_upper, 11)
-    params_array = np.array([params.copy() for fd in fd_points])
+    params_array = np.array([copy.deepcopy(params) for fd in fd_points])
     queue = Queue(params_array, fd_points)
     curvature_iterations = 0
     results = pd.DataFrame()
@@ -436,16 +443,16 @@ def sweep(eps, fd_lower, fd_upper, params, threshold, custom, method='direct'):
     while (queue.size > 0) and (curvature_iterations < 3):
         print curvature_iterations
         curvature_iterations = curvature_iterations + 1
-        results = transmission_calc_array(queue, results, custom, method=method)
+        results = transmission_calc_array(queue, results, custom, method=method, options=options)
         queue.curvature_generate(results, threshold)
     return results
 
 
-def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=False, method='direct'):
+def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold, custom=False, method='direct', options=SpectroscopyOptions()):
     multi_results_dict = dict()
 
     for eps in eps_array:
-        multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold, custom, method)
+        multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold, custom, method, options=options)
         params = multi_results_dict[eps]['params'].iloc[0]
         print params.c_levels
         print params.t_levels
