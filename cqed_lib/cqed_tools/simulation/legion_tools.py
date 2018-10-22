@@ -962,7 +962,7 @@ def bistable_states_calc(rho_ss, show=False):
     bistability_threshold = 1e-15
     rho_c = rho_ss.ptrace(0)
     xvec = np.linspace(-10, 10, n_bins)
-    W = wigner(rho_c, xvec, xvec, g=2)
+    W = wigner(rho_c, xvec, xvec)
     W /= np.sum(W)
 
     if show:
@@ -1040,12 +1040,12 @@ def bistable_states_calc(rho_ss, show=False):
             bright_alpha = np.sum(xvec[peak_bright] * np.array([1j, 1]))
             bright_projector = tensor(coherent_dm(c_levels, bright_alpha), qeye(t_levels))
             rho_bright = bright_projector * rho_ss
-            rho_bright /= rho_bright.tr()
+            rho_bright /= rho_bright.norm()
 
             dim_alpha = np.sum(xvec[peak_dim] * np.array([1j, 1]))
             dim_projector = tensor(coherent_dm(c_levels, dim_alpha), qeye(t_levels))
             rho_dim = dim_projector * rho_ss
-            rho_dim /= rho_dim.tr()
+            rho_dim /= rho_dim.norm()
 
             characteristics['alpha_bright'] = bright_alpha
             characteristics['alpha_dim'] = dim_alpha
