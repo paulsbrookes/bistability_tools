@@ -1053,8 +1053,8 @@ def bistable_states_calc(rho_ss, show=False, axes=None):
             if np.abs(rho_bright.tr()) > bistability_threshold and np.abs(rho_dim.tr()) > bistability_threshold:
                 bistability = True
 
-    if show:
-        plt.show()
+    #if show:
+    #    plt.show()
 
     return bistability, rho_dim, rho_bright, characteristics
 
