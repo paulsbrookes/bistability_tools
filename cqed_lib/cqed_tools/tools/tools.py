@@ -2,6 +2,7 @@ from qutip import *
 import numpy as np
 import scipy
 import pandas as pd
+import numpy as np
 
 
 def add_column(df, op, name):
@@ -161,3 +162,47 @@ def lowest_occupation_calc(C, steady_state, adr_state):
     occupations = rho.eigenenergies(eigvals=1)
     lowest_occupation = np.min(occupations)
     return lowest_occupation
+
+
+def diagonalise_subspace(op, basis):
+    n_states = basis.shape[0]
+    matrix_elements = np.zeros([n_states, n_states], dtype=np.complex128)
+    for i in range(n_states):
+        for j in range(n_states):
+            matrix_elements[i, j] = (basis[i].dag()*op*basis[j])[0,0]
+    op_subspace = Qobj(matrix_elements)
+    eigenvalues, eigenvectors = op_subspace.eigenstates()
+    new_basis = []
+    for vector in eigenvectors:
+        new_basis += [np.sum(vector.full()[:, 0] * basis)]
+    new_basis = np.array(new_basis)
+    return eigenvalues, new_basis
+
+
+def calculate_constants(directory, hermitianize=False):
+    c_ops = qload(directory+'/c_ops')
+    H = qload(directory+'/slowdown_hamiltonian')
+    L = liouvillian(H,c_ops)
+    rho_ss = qload(directory+'/steady_state')
+    rho_final = qload(directory+'/state_checkpoint')
+    eigenvalues, new_basis = calc_adr_state(rho_ss, rho_final, L)
+    adr_idx = np.argmax(np.abs(eigenvalues))
+    rate = eigenvalues[adr_idx]
+    return -1/(2*np.pi*1000*rate.real)
+
+
+def calc_adr_state(rho_ss, rho_final, L, hermitianize=False):
+    rho_ss = operator_to_vector(rho_ss)
+    rho_ss /= rho_ss.norm()
+    if not hermitianize:
+        rho_final = operator_to_vector(rho_final)
+    else:
+        rho_final = 0.5*(rho_final + rho_final.dag())
+        rho_final = operator_to_vector(rho_final)
+    rho_final /= rho_final.norm()
+    overlap = (rho_ss.dag()*rho_final)[0,0]
+    rho_ortho = rho_final - overlap*rho_ss
+    rho_ortho /= rho_ortho.norm()
+    basis = np.array([rho_ss, rho_ortho])
+    eigenvalues, new_basis = diagonalise_subspace(L, basis)
+    return eigenvalues, new_basis

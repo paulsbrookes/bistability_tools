@@ -70,3 +70,30 @@ def load_results(directory):
     return settings, state, results
 
 
+def load_settings(settings_path):
+    settings = pd.read_csv(settings_path, header=None)
+    settings = settings.set_index(0)
+    settings = settings.T
+    dtypes = dict()
+    dtypes['job_index'] = np.int
+    dtypes['eps'] = np.float
+    dtypes['fd'] = np.float
+    dtypes['qubit_state'] = np.int
+    dtypes['t_levels'] = np.int
+    dtypes['c_levels'] = np.int
+    dtypes['fc'] = np.float
+    dtypes['Ej'] = np.float
+    dtypes['g'] = np.float
+    dtypes['Ec'] = np.float
+    dtypes['kappa'] = np.float
+    dtypes['gamma'] = np.float
+    dtypes['gamma_phi'] = np.float
+    dtypes['n_t'] = np.float
+    dtypes['n_c'] = np.float
+    dtypes['end_time'] = np.float
+    dtypes['snapshots'] = np.int
+    dtypes['group_folder'] = str
+    settings = settings.astype(dtypes)
+    settings = settings.iloc[0, :]
+    return settings 
+

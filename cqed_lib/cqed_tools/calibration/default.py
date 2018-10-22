@@ -3,7 +3,7 @@ from .spectra_tools import Parameters
 class DefaultParameters(Parameters):
     def __init__(self):
         Ec = 0.2197428476508422
-        fc = 10.4302
+        fc = 10.4263
         Ej = 46.813986415542402
         g = 0.28492608868781633
         eps = 0.0
