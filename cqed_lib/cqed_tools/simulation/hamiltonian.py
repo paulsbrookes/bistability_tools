@@ -75,6 +75,19 @@ def collapse_operators(params, alpha=0, beta=0):
     return c_ops
 
 
+def collapse_operators_mf(params):
+    sm = destroy(params.t_levels)
+    c_ops = []
+    if params.gamma != 0:
+        c_ops.append(np.sqrt(params.gamma*(params.n_t+1)) * sm)
+        if params.n_t != 0:
+            c_ops.append(np.sqrt(params.gamma*params.n_t) * sm.dag())
+    if params.gamma_phi != 0:
+        dispersion_op = sm.dag()*sm
+        c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
+    return c_ops
+
+
 def charge_dispersion_calc(level, Ec, Ej):
     dispersion = (-1)**level * Ec * 2**(4*level+5) * np.sqrt(2.0/np.pi) * (Ej/(2*Ec))**(level/2.0+3/4.0) * np.exp(-np.sqrt(8*Ej/Ec))
     dispersion /= factorial(level)
@@ -193,12 +206,12 @@ high_energies_calc = np.vectorize(high_energies_calc_single)
 
 
 def coupling_hamiltonian_gen(params, alpha=0):
+    a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
     lower_levels = np.arange(0,params.t_levels-1)
     upper_levels = np.arange(1,params.t_levels)
     q = -params.Ej / (2 * params.Ec)
     coupling_array = coupling_calc(lower_levels,upper_levels,q)
     coupling_array = coupling_array/coupling_array[0]
-    a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
     down_transmon_transitions = 0
     for i, coupling in enumerate(coupling_array):
         down_transmon_transitions += coupling*basis(params.t_levels,i)*basis(params.t_levels,i+1).dag()
@@ -209,7 +222,7 @@ def coupling_hamiltonian_gen(params, alpha=0):
     return coupling_hamiltonian
 
 
-def hamiltonian(params, transmon=True, alpha=0, beta=0, duffing=False):
+def hamiltonian(params, transmon=True, alpha=0, duffing=False):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
     H = (params.fc - params.fd) * a.dag() * a + params.eps * (a + a.dag())
     if transmon is True:
@@ -224,6 +237,45 @@ def hamiltonian(params, transmon=True, alpha=0, beta=0, duffing=False):
         b = tensor(qeye(params.c_levels), destroy(params.t_levels))
         H += (params.f01 - params.fd)*b.dag()*b + params.g*(a*b.dag() + a.dag()*b)
     return H
+
+
+def hamiltonian_mf(params, alpha, transmon=True, duffing=False):
+    H = (params.fc - params.fd) * np.conjugate(alpha) * alpha + params.eps * (alpha + np.conjugate(alpha))
+    if transmon is True:
+        if duffing:
+            b = destroy(params.t_levels)
+            H += (params.f01 - params.fd)*b.dag()*b + params.g*(alpha*b.dag() + np.conjugate(alpha)*b) + 0.5*params.u*b.dag()*b.dag()*b*b
+        else:
+            transmon_hamiltonian = transmon_hamiltonian_gen_mf(params)
+            coupling_hamiltonian = coupling_hamiltonian_gen_mf(params, alpha)
+            H += transmon_hamiltonian + coupling_hamiltonian
+    else:
+        b = destroy(params.t_levels)
+        H += (params.f01 - params.fd)*b.dag()*b + params.g*(alpha*b.dag() + np.conjugate(alpha)*b)
+    return H
+
+
+def coupling_hamiltonian_gen_mf(params, alpha):
+    lower_levels = np.arange(0,params.t_levels-1)
+    upper_levels = np.arange(1,params.t_levels)
+    q = -params.Ej / (2 * params.Ec)
+    coupling_array = coupling_calc(lower_levels,upper_levels,q)
+    coupling_array = coupling_array/coupling_array[0]
+    down_transmon_transitions = 0
+    for i, coupling in enumerate(coupling_array):
+        down_transmon_transitions += coupling*basis(params.t_levels,i)*basis(params.t_levels,i+1).dag()
+    down_transmon_transitions *= np.conjugate(alpha)
+    coupling_hamiltonian = down_transmon_transitions + down_transmon_transitions.dag()
+    coupling_hamiltonian *= params.g
+    return coupling_hamiltonian
+
+
+def transmon_hamiltonian_gen_mf(params):
+    energies = transmon_energies_calc(params)
+    transmon_hamiltonian = 0
+    for n, energy in enumerate(energies):
+        transmon_hamiltonian += (energy-n*params.fd)*fock_dm(params.t_levels, n)
+    return transmon_hamiltonian
 
 
 def hamiltonian_eliminated(params):
