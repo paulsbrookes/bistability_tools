@@ -947,7 +947,7 @@ def window_maximum_finder(i_limits, j_limits, array):
     else:
         return np.array([])
 
-    
+
 def bistable_states_calc(rho_ss, show=False):
     c_levels = rho_ss.dims[0][0]
     t_levels = rho_ss.dims[0][1]
@@ -1049,7 +1049,7 @@ def bistable_states_calc(rho_ss, show=False):
     if show:
         plt.show()
 
-return bistability, rho_dim, rho_bright, characteristics
+    return bistability, rho_dim, rho_bright, characteristics
 
 
 def bistable_states_calc_unreliable(rho_ss, show=False, axes=None):
