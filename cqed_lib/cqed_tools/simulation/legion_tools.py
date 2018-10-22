@@ -948,7 +948,7 @@ def window_maximum_finder(i_limits, j_limits, array):
         return np.array([])
 
 
-def bistable_states_calc(rho_ss, show=False):
+def bistable_states_calc(rho_ss, show=False, g=np.sqrt(2)):
 
     c_levels = rho_ss.dims[0][0]
     t_levels = rho_ss.dims[0][1]
@@ -962,7 +962,7 @@ def bistable_states_calc(rho_ss, show=False):
     bistability_threshold = 1e-15
     rho_c = rho_ss.ptrace(0)
     xvec = np.linspace(-10, 10, n_bins)
-    W = wigner(rho_c, xvec, xvec, g=np.sqrt(2))
+    W = wigner(rho_c, xvec, xvec, g=g)
     W /= np.sum(W)
 
     if show:
