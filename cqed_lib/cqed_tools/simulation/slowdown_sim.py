@@ -1,5 +1,5 @@
 from .legion_tools import *
-from .hamiltonian import *
+from .hamiltonian_gen import *
 
 
 def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False):

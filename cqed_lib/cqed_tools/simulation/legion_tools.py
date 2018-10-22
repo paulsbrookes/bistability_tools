@@ -11,7 +11,7 @@ import pandas as pd
 import pickle
 import matplotlib.pyplot as plt
 from .gsl import *
-from .hamiltonian import *
+from .hamiltonian_gen import *
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
@@ -948,7 +948,7 @@ def window_maximum_finder(i_limits, j_limits, array):
         return np.array([])
 
 
-def bistable_states_calc(rho_ss, show=False, g=np.sqrt(2)):
+def bistable_states_calc(rho_ss, show=False, g=np.sqrt(2), axes=None):
 
     c_levels = rho_ss.dims[0][0]
     t_levels = rho_ss.dims[0][1]
@@ -966,7 +966,8 @@ def bistable_states_calc(rho_ss, show=False, g=np.sqrt(2)):
     W /= np.sum(W)
 
     if show:
-        fig, axes = plt.subplots(1, 1, figsize=(5, 5))
+        if axes is None:
+            fig, axes = plt.subplots(1, 1, figsize=(5, 5))
         cont0 = axes.contourf(xvec, xvec, W, 100)
         axes.plot([0, 0], axes.get_ylim())
         axes.plot(axes.get_xlim(), [0, 0])

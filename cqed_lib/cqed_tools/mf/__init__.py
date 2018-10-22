@@ -1,2 +1,2 @@
 from mf import *
-from hamiltonian import *
+from hamiltonian_gen_mf import *

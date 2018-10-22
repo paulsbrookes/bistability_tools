@@ -1,6 +1,6 @@
 import numpy as np
 from qutip import *
-from ..simulation.hamiltonian import coupling_calc, transmon_energies_calc
+from ..simulation.hamiltonian_gen import coupling_calc, transmon_energies_calc
 
 
 def hamiltonian_mf(params, alpha, transmon=True, duffing=False):

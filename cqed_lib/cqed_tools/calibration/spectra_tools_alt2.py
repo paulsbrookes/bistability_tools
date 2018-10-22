@@ -17,7 +17,7 @@ from datetime import datetime
 import scipy.special as special
 import scipy
 import scipy.sparse.linalg as lin
-from ..simulation.hamiltonian import *
+from ..simulation.hamiltonian_gen import *
 from tqdm import tqdm
 import sys
 import h5py

@@ -1,5 +1,5 @@
 from .legion_tools import *
-from .hamiltonian import *
+from .hamiltonian_gen import *
 
 
 def mcsolve_sim(job_index, stack_directory='./results', transmon=True, bistable_initial=True):

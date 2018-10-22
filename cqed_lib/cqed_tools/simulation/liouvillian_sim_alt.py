@@ -1,5 +1,5 @@
 from .legion_tools import *
-from .hamiltonian import *
+from .hamiltonian_gen import *
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 import scipy.sparse.linalg as lin
 import h5py
