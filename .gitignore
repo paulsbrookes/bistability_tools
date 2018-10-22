@@ -9,3 +9,8 @@ simulation/stack_generation
 simulation/analysis.ipynb
 .idea
 .ipynb_checkpoints
+*.pyc
+*.o
+*.so
+cqed_lib/cqed_tools/simulation/gsl.c
+scripts/.dropbox.attr
