@@ -962,7 +962,7 @@ def bistable_states_calc(rho_ss, show=False):
     bistability_threshold = 1e-15
     rho_c = rho_ss.ptrace(0)
     xvec = np.linspace(-10, 10, n_bins)
-    W = wigner(rho_c, xvec, xvec)
+    W = wigner(rho_c, xvec, xvec, g=np.sqrt(2))
     W /= np.sum(W)
 
     if show:
