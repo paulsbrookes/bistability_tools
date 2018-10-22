@@ -949,6 +949,7 @@ def window_maximum_finder(i_limits, j_limits, array):
 
 
 def bistable_states_calc(rho_ss, show=False):
+
     c_levels = rho_ss.dims[0][0]
     t_levels = rho_ss.dims[0][1]
 
@@ -1070,8 +1071,7 @@ def bistable_states_calc_unreliable(rho_ss, show=False, axes=None):
     W /= np.sum(W)
 
     if show:
-        if axes is None:
-            fig, axes = plt.subplots(1, 1, figsize=(5, 5))
+        fig, axes = plt.subplots(1, 1, figsize=(5, 5))
         cont0 = axes.contourf(xvec, xvec, W, 100)
         axes.plot([0, 0], axes.get_ylim())
         axes.plot(axes.get_xlim(), [0, 0])
@@ -1140,16 +1140,17 @@ def bistable_states_calc_unreliable(rho_ss, show=False, axes=None):
         characteristics['contrast'] = contrast
 
         if contrast > bistability_threshold:
+            bistability = True
 
             bright_alpha = np.sum(xvec[peak_bright] * np.array([1j, 1]))
             bright_projector = tensor(coherent_dm(c_levels, bright_alpha), qeye(t_levels))
             rho_bright = bright_projector * rho_ss
-            #rho_bright /= rho_bright.tr()
+            rho_bright /= rho_bright.tr()
 
             dim_alpha = np.sum(xvec[peak_dim] * np.array([1j, 1]))
             dim_projector = tensor(coherent_dm(c_levels, dim_alpha), qeye(t_levels))
             rho_dim = dim_projector * rho_ss
-            #rho_dim /= rho_dim.tr()
+            rho_dim /= rho_dim.tr()
 
             characteristics['alpha_bright'] = bright_alpha
             characteristics['alpha_dim'] = dim_alpha
@@ -1159,6 +1160,8 @@ def bistable_states_calc_unreliable(rho_ss, show=False, axes=None):
 
     #if show:
     #    plt.show()
+    if show:
+        plt.show()
 
     return bistability, rho_dim, rho_bright, characteristics
 
