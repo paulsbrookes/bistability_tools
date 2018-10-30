@@ -1,6 +1,8 @@
 import numpy as np
 from qutip import *
 from scipy.optimize import fsolve, root, minimize
+from ..simulation.hamiltonian_gen import coupling_calc
+from cqed_tools.mf.hamiltonian_gen_mf import hamiltonian_mf, collapse_operators_mf
 
 
 def dalpha_calc_me(x, L=None, ham=None, c_ops=None):

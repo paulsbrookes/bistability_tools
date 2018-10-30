@@ -58,19 +58,19 @@ class ParametersPartial:
 
 def collapse_operators(params, alpha=0, beta=0):
     a = tensor(destroy(params.c_levels), qeye(params.t_levels)) + alpha
-    sm = tensor(qeye(params.c_levels), destroy(params.t_levels)) + beta
+    b = tensor(qeye(params.c_levels), destroy(params.t_levels)) + beta
     c_ops = []
     if params.kappa != 0:
         c_ops.append(np.sqrt(params.kappa*(params.n_c+1)) * a)
         if params.n_c != 0:
             c_ops.append(np.sqrt(params.kappa*params.n_c) * a.dag())
     if params.gamma != 0:
-        c_ops.append(np.sqrt(params.gamma*(params.n_t+1)) * sm)
+        c_ops.append(np.sqrt(params.gamma*(params.n_t+1)) * b)
         if params.n_t != 0:
-            c_ops.append(np.sqrt(params.gamma*params.n_t) * sm.dag())
+            c_ops.append(np.sqrt(params.gamma*params.n_t) * b.dag())
     if params.gamma_phi != 0:
         #dispersion_op = dispersion_op_gen(params)
-        dispersion_op = sm.dag()*sm
+        dispersion_op = b.dag()*b
         c_ops.append(np.sqrt(params.gamma_phi)*dispersion_op)
     return c_ops
 

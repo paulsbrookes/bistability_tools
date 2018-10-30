@@ -206,3 +206,13 @@ def calc_adr_state(rho_ss, rho_final, L, hermitianize=False):
     basis = np.array([rho_ss, rho_ortho])
     eigenvalues, new_basis = diagonalise_subspace(L, basis)
     return eigenvalues, new_basis
+
+
+def expand(rho, new_c_levels):
+    old_c_levels = rho.dims[0][0]
+    t_levels = rho.dims[0][1]
+    n_zeros = t_levels * (new_c_levels - old_c_levels)
+    padded_contents = np.pad(rho.full(), ((0,n_zeros),(0,n_zeros)), 'constant')
+    new_state = Qobj(padded_contents)
+    new_state.dims = [[new_c_levels, t_levels], [new_c_levels, t_levels]]
+    return new_state
