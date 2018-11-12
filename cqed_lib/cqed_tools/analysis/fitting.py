@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 from qutip import *
 from .loading import *
 
+
 def decay(t, ar, ai, br, bi, T):
     signal_r = ar - br * np.exp(-t / T)
     signal_i = ai - bi * np.exp(-t / T)
@@ -27,7 +28,7 @@ def decay_gen(a_ss):
 
 def analyse_directory(directory, results_list, flags):
     time_constants, collated_popt, collated_a_ss, collated_states = results_list
-
+    dims = ['eps', 'fd', 'qubit_state', 't_levels', 'c_levels', 'n_c']
     settings, state, results = load_results(directory)
 
     if state is not None:
@@ -37,12 +38,10 @@ def analyse_directory(directory, results_list, flags):
         a_ss = expect(state, a)
 
         coords = [[float(settings.eps)], [float(settings.fd)], [int(float(settings.qubit_state))], [t_levels],
-                  [c_levels]]
+                  [c_levels], [float(settings.n_c)]]
 
-        a_ss_point = xr.DataArray([[[[[a_ss]]]]], coords=coords,
-                                  dims=['eps', 'fd', 'qubit_state', 't_levels', 'c_levels'])
-        state_point = xr.DataArray([[[[[state]]]]], coords=coords,
-                                   dims=['eps', 'fd', 'qubit_state', 't_levels', 'c_levels'])
+        a_ss_point = xr.DataArray([[[[[[a_ss]]]]]], coords=coords, dims=dims)
+        state_point = xr.DataArray([[[[[[state]]]]]], coords=coords, dims=dims)
 
         if collated_a_ss is None:
             collated_a_ss = a_ss_point
@@ -55,9 +54,9 @@ def analyse_directory(directory, results_list, flags):
         i = results.a_op_re
 
         t_end = i.index[-1]
-        if t_end > 4:
+        if t_end > 4.0:
 
-            t0 = 2
+            t0 = 3.0
             i_truncated = i[t0:]
             times = i_truncated.index
 
@@ -71,11 +70,9 @@ def analyse_directory(directory, results_list, flags):
 
             T_constant = popt[1]
 
-            point = xr.DataArray([[[[[T_constant]]]]], coords=coords,
-                                 dims=['eps', 'fd', 'qubit_state', 't_levels', 'c_levels'])
+            point = xr.DataArray([[[[[[T_constant]]]]]], coords=coords, dims=dims)
 
-            popt_point = xr.DataArray([[[[[popt]]]]], coords=(coords + [np.arange(2)]),
-                                      dims=['eps', 'fd', 'qubit_state', 't_levels', 'c_levels', 'popt'])
+            popt_point = xr.DataArray([[[[[[popt]]]]]], coords=(coords + [np.arange(2)]), dims=dims + ['popt'])
 
             if time_constants is None:
                 time_constants = point
@@ -176,10 +173,10 @@ def analyse_tree(directory, use_flags=True, save=True, load=True):
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         else:
-	    os.remove(cache_dir+'/simulated_results.nc')
-	    os.remove(cache_dir+'/a_ss.nc')
-	    os.remove(cache_dir+'/collated_popt.nc')
-	    os.remove(cache_dir+'/collated_directories.qu')
+            os.remove(cache_dir+'/simulated_results.nc')
+            os.remove(cache_dir+'/a_ss.nc')
+            os.remove(cache_dir+'/collated_popt.nc')
+            os.remove(cache_dir+'/collated_directories.qu')
 
         results_dict = dict()
         results_dict['constants'] = time_constants
@@ -195,3 +192,8 @@ def analyse_tree(directory, use_flags=True, save=True, load=True):
         qsave(collated_directories, cache_dir+'/collated_directories')
 
     return time_constants, collated_a_ss, collated_popt, collated_directories
+
+
+
+
+

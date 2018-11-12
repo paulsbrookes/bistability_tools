@@ -32,12 +32,14 @@ def multi_series_plotter(x_dimension, cut_dimension, series, ax=False, linestyle
         ax.plot(x_values, cut, linestyle=linestyle)
 
 
-def hilbert_calibration_plotter(results):
+def hilbert_calibration_plotter(results, axes=None):
     import itertools
     marker = itertools.cycle((',', '+', '.', 'o', '*'))
     style = itertools.cycle(('-', '-', '--', '--'))
 
-    fig, axes = plt.subplots(1, 1)
+    if axes is None:
+        print('Axes not given.')
+        fig, axes = plt.subplots(1, 1)
 
     legend = []
 
