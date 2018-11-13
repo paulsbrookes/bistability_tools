@@ -1,8 +1,5 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import xarray as xr
 from scipy.optimize import curve_fit
-from qutip import *
 from .loading import *
 
 
@@ -200,7 +197,7 @@ def analyse_tree_liouvillian(directory, use_flags=True, save=True, load=True):
         print('Loading.')
         results = pd.read_hdf('results.h5')
         return results
-    
+
     results = None
 
     walk = os.walk(directory)

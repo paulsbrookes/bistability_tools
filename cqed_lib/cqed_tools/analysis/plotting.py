@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import itertools
+import numpy as np
 
 
 def plot_nonempty(array, name, axes, color='k'):
