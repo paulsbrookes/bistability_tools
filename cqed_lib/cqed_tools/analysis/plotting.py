@@ -58,9 +58,9 @@ def hilbert_calibration_plotter(results, axes=None):
     plt.show()
 
 
-def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', markersize=10, lower_bound=0):
-
-    time_constants = time_constants.dropna()
+def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', markersize=10, lower_bound=0,
+                            interpolate=True):
+    time_constants = time_constants.replace([np.inf, -np.inf], np.nan).dropna()
 
     mi = time_constants.index
     eps_index = time_constants.index.names.index('eps')
@@ -70,12 +70,35 @@ def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', mark
     if axes is None:
         fig, axes = plt.subplots(1, 1, figsize=(15, 8))
 
-    for eps in eps_values:
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    c_iterator = iter(colors)
+
+    for i, eps in enumerate(eps_values):
+        color = c_iterator.next()
+        # color='r'
         cut = time_constants.xs(eps, level=eps_index)
         cut = cut.sort_index(level='fd')
         fd_array = cut.index.get_level_values('fd')
         cut = cut.astype(np.complex)
-        axes.plot(fd_array, cut.real, ls=ls, marker=marker, markersize=markersize)
+        if interpolate:
+            func = interp1d(fd_array, cut, kind='cubic')
+            fd_points = np.linspace(fd_array[0], fd_array[-1], 1001)
+            axes.plot(fd_points, func(fd_points), ls=ls, marker=None, color=color)
+            # axes.plot(fd_array, cut.real, ls='', marker=marker, markersize=markersize, color=color)
+        else:
+            axes.plot(fd_array, cut.real, ls=ls, marker=marker, markersize=markersize, color=color)
+
+    if interpolate:
+        c_iterator = iter(colors)
+        for i, eps in enumerate(eps_values):
+            color = c_iterator.next()
+            # color='r'
+            cut = time_constants.xs(eps, level=eps_index)
+            cut = cut.sort_index(level='fd')
+            fd_array = cut.index.get_level_values('fd')
+            cut = cut.astype(np.complex)
+            axes.plot(fd_array, cut.real, ls='', marker=marker, markersize=markersize, color=color)
 
     plt.savefig('sim_time_constants.png')
 
