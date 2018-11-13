@@ -194,7 +194,13 @@ def analyse_tree(directory, use_flags=True, save=True, load=True):
     return time_constants, collated_a_ss, collated_popt, collated_directories
 
 
-def analyse_tree_liouvillian(directory, use_flags=True, save=True):
+def analyse_tree_liouvillian(directory, use_flags=True, save=True, load=True):
+
+    if load and os.path.exists('results.h5'):
+        print('Loading.')
+        results = pd.read_hdf('results.h5')
+        return results
+    
     results = None
 
     walk = os.walk(directory)
