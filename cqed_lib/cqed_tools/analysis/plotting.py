@@ -59,6 +59,9 @@ def hilbert_calibration_plotter(results, axes=None):
 
 
 def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', markersize=10, lower_bound=0):
+
+    time_constants = time_constants.dropna()
+
     mi = time_constants.index
     eps_index = time_constants.index.names.index('eps')
     eps_values = mi.levels[eps_index]
@@ -76,6 +79,39 @@ def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', mark
 
     plt.savefig('sim_time_constants.png')
 
+    plt.gca().set_prop_cycle(None)
+
+    return axes
+
+
+def plot_time_constants_exp(combined, combined_errors, axes=None, loc=0, fmt='-o', ls='-', marker='o', show_errors=True,
+                        markersize=12, markeredgewidth=3):
+
+    if axes is None:
+        matplotlib.rcParams['figure.figsize'] = (12, 8)
+
+        font = {'weight': 'normal',
+                'size': 22}
+
+        matplotlib.rc('font', **font)
+
+        fig, axes = plt.subplots(1, 1)
+
+    n_runs = combined.shape[0]
+
+    for i in np.flip(np.arange(n_runs), axis=0):
+        pruned_constants = combined.iloc[i].dropna()
+        pruned_errors = combined_errors.iloc[i].dropna()
+        # combined.iloc[i].dropna().plot(ax=axes)
+        # axes.scatter(combined.iloc[i].index, combined.iloc[i])
+        if show_errors:
+            axes.errorbar(pruned_constants.index, pruned_constants, yerr=pruned_errors, fmt=fmt)
+        else:
+            axes.plot(pruned_constants.index, pruned_constants, marker=marker, ls=ls, markersize=markersize,
+                      markeredgewidth=markeredgewidth)
+    axes.legend(np.flip(combined.index, axis=0), loc=loc, title='Power (dBm)')
+    axes.set_xlabel('Drive frequency / GHz')
+    axes.set_ylabel(r'Time constant / $\mu$s')
     plt.gca().set_prop_cycle(None)
 
     return axes
