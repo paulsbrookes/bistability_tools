@@ -194,6 +194,55 @@ def analyse_tree(directory, use_flags=True, save=True, load=True):
     return time_constants, collated_a_ss, collated_popt, collated_directories
 
 
+def analyse_tree_liouvillian(directory, use_flags=True, save=True):
+    results = None
 
+    walk = os.walk(directory)
 
+    for content in walk:
 
+        directory = content[0]
+
+        print(directory)
+
+        if os.path.exists(directory + '/flags.txt') and use_flags:
+            print('flags!')
+            with open(directory + '/flags.txt', 'r') as f:
+                line = f.readline().split('\n')[0]
+                flags = line.split(',')
+        else:
+            flags = []
+
+        try:
+            if os.path.exists(directory + '/steady_state.qu'):
+                steady_state = qload(directory + '/steady_state')
+                settings = load_settings(directory + '/settings.csv')
+                t_levels = int(float(settings.t_levels))
+                c_levels = int(float(settings.c_levels))
+                a = tensor(destroy(c_levels), qeye(t_levels))
+                a_ss = expect(steady_state, a)
+
+                if os.path.exists(directory + '/steady_state.qu') and os.path.exists(
+                        directory + '/state_checkpoint.qu'):
+                    time_constant = calculate_constants(directory)
+                else:
+                    time_constant = None
+
+                mi = pd.MultiIndex.from_arrays(np.array([settings.values]).T, names=tuple(settings.index))
+                row = pd.DataFrame(np.array([[time_constant, a_ss]]), columns=['time_constants', 'a_ss'], index=mi)
+                if results is not None:
+                    results = pd.concat([results, row])
+                else:
+                    results = row
+        except:
+            print('Failure.')
+
+    dtypes = dict()
+    dtypes['time_constants'] = np.complex
+    dtypes['a_ss'] = np.complex
+    results = results.astype(dtypes)
+
+    if save:
+        results.to_hdf('results.h5', key='results')
+
+    return results
