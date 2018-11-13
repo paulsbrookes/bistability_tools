@@ -55,3 +55,26 @@ def hilbert_calibration_plotter(results, axes=None):
     axes.legend(legend)
 
     plt.show()
+
+
+def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', markersize=10, lower_bound=0):
+    mi = time_constants.index
+    eps_index = time_constants.index.names.index('eps')
+    eps_values = mi.levels[eps_index]
+    eps_values = eps_values[lower_bound:eps_values.shape[0]]
+
+    if axes is None:
+        fig, axes = plt.subplots(1, 1, figsize=(15, 8))
+
+    for eps in eps_values:
+        cut = time_constants.xs(eps, level=eps_index)
+        cut = cut.sort_index(level='fd')
+        fd_array = cut.index.get_level_values('fd')
+        cut = cut.astype(np.complex)
+        axes.plot(fd_array, cut.real, ls=ls, marker=marker, markersize=markersize)
+
+    plt.savefig('sim_time_constants.png')
+
+    plt.gca().set_prop_cycle(None)
+
+    return axes
