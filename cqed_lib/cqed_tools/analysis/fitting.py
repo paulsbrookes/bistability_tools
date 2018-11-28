@@ -247,6 +247,6 @@ def analyse_tree_liouvillian(directory, use_flags=True, save=True, load=True):
     results = results.astype(dtypes)
 
     if save:
-        results.to_hdf('results.h5', key='results')
+        results.to_hdf('results_liouvillian.h5', key='results')
 
     return results
