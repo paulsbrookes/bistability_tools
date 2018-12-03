@@ -97,3 +97,16 @@ def load_settings(settings_path):
     settings = settings.iloc[0, :]
     return settings 
 
+
+def columns_to_multiindex(dataframe):
+    collated = None
+
+    for i in range(dataframe.shape[0]):
+        row = dataframe.iloc[i].dropna()
+        labelled_row = pd.concat([row], keys=[row.name], names=['power', 'fd'])
+        if collated is None:
+            collated = labelled_row
+        else:
+            collated = pd.concat([collated, labelled_row])
+
+    return collated

@@ -60,7 +60,7 @@ def hilbert_calibration_plotter(results, axes=None):
 
 
 def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', markersize=10, lower_bound=0,
-                            interpolate=True, label=False):
+                            interpolate=True, label=False, colors=None, legend_label=None):
     time_constants = time_constants.replace([np.inf, -np.inf], np.nan).dropna()
 
     mi = time_constants.index
@@ -72,7 +72,8 @@ def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', mark
         fig, axes = plt.subplots(1, 1, figsize=(15, 8))
 
     prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
+    if colors is None:
+        colors = prop_cycle.by_key()['color']
     c_iterator = iter(1000*colors)
 
     for i, eps in enumerate(eps_values):
@@ -84,20 +85,20 @@ def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', mark
         if interpolate:
             func = interp1d(fd_array, cut, kind='cubic')
             fd_points = np.linspace(fd_array[0], fd_array[-1], 1001)
-            axes.plot(fd_points, func(fd_points), ls=ls, marker=None, color=color)
+            axes.plot(fd_points, func(fd_points), ls=ls, marker=None, color=color, label=legend_label)
         else:
-            axes.plot(fd_array, cut.real, ls=ls, marker=marker, markersize=markersize, color=color)
+            axes.plot(fd_array, cut.real, ls=ls, marker=marker, markersize=markersize, color=color, label=legend_label)
 
-    if interpolate:
-        c_iterator = iter(1000*colors)
-        for i, eps in enumerate(eps_values):
-            color = c_iterator.next()
-            # color='r'
-            cut = time_constants.xs(eps, level=eps_index)
-            cut = cut.sort_index(level='fd')
-            fd_array = cut.index.get_level_values('fd')
-            cut = cut.astype(np.complex)
-            axes.plot(fd_array, cut.real, ls='', marker=marker, markersize=markersize, color=color)
+    #if interpolate:
+     #   c_iterator = iter(1000*colors)
+     #   for i, eps in enumerate(eps_values):
+     #       color = c_iterator.next()
+     #       # color='r'
+     #       cut = time_constants.xs(eps, level=eps_index)
+     #       cut = cut.sort_index(level='fd')
+     #       fd_array = cut.index.get_level_values('fd')
+     #       cut = cut.astype(np.complex)
+     #       axes.plot(fd_array, cut.real, ls='', marker=marker, markersize=markersize, color=color, label=legend_label)
 
     if label:
         for i in range(0, time_constants.shape[0]):
@@ -142,3 +143,51 @@ def plot_time_constants_exp(combined, combined_errors, axes=None, loc=0, fmt='-o
     plt.gca().set_prop_cycle(None)
 
     return axes
+
+
+def cut_plotting(selected_power_values, combined, destination_path, show_errors=False, axes=None, eps_values=None,
+                 time_constants=None, line=True):
+    if axes is None:
+        fig, axes = plt.subplots(1, 1, figsize=(10, 6))
+
+    marker_dict = {2: 'o', 3: 'x'}
+    mi = combined.index
+    set_index = mi.names.index('set')
+    power_index = mi.names.index('power')
+    set_values = mi.levels[set_index]
+
+
+    if line:
+        ls = '--'
+    else:
+        ls = ''
+
+    for i, power in enumerate(selected_power_values):
+        axes.clear()
+        cut = combined.xs(power, level=power_index, drop_level=False)
+        axes.plot(cut.index.get_level_values('fd'), cut['T'].values, marker='', ls=ls, color='k', label=None)
+        for set_label in set_values:
+            set_cut = cut.xs(set_label, level=set_index)
+            if show_errors:
+                axes.errorbar(set_cut.index.get_level_values('fd'), set_cut['T'].values, yerr=set_cut['errors'].values,
+                              marker=marker_dict[set_label], ls='', label='Exp Set %d' % set_label, markersize=7, mew=4)
+            else:
+                axes.scatter(set_cut.index.get_level_values('fd'), set_cut['T'].values, marker=marker_dict[set_label],
+                             s=50, lw=3, label=set_label)
+
+        if eps_values is not None:
+            mi_sim = time_constants.index
+            eps_index = mi_sim.names.index('eps')
+            xlim = axes.get_xlim()
+            sim_cut = time_constants.xs(eps_values[i], level=eps_index, drop_level=False).dropna()
+            sim_cut.index = sim_cut.index.remove_unused_levels()
+            axes = plot_time_constants_sim(sim_cut, axes=axes, ls='-', marker='', interpolate=True, lower_bound=0,
+                                           legend_label='Sim', colors=['r'])
+            axes.set_xlim(xlim)
+
+        legend = axes.legend()
+
+        axes.set_xlabel('Drive frequency (GHz)')
+        axes.set_ylabel(r'$T_s$ $(\mu s)$')
+        axes.set_title('Power = %.0f dBm' % power)
+        plt.savefig(destination_path + '/power=%ddBm' % power)
