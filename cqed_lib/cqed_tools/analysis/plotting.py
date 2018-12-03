@@ -89,16 +89,16 @@ def plot_time_constants_sim(time_constants, axes=None, ls='--', marker='o', mark
         else:
             axes.plot(fd_array, cut.real, ls=ls, marker=marker, markersize=markersize, color=color, label=legend_label)
 
-    #if interpolate:
-     #   c_iterator = iter(1000*colors)
-     #   for i, eps in enumerate(eps_values):
-     #       color = c_iterator.next()
-     #       # color='r'
-     #       cut = time_constants.xs(eps, level=eps_index)
-     #       cut = cut.sort_index(level='fd')
-     #       fd_array = cut.index.get_level_values('fd')
-     #       cut = cut.astype(np.complex)
-     #       axes.plot(fd_array, cut.real, ls='', marker=marker, markersize=markersize, color=color, label=legend_label)
+    if interpolate:
+        c_iterator = iter(1000*colors)
+        for i, eps in enumerate(eps_values):
+            color = c_iterator.next()
+            # color='r'
+            cut = time_constants.xs(eps, level=eps_index)
+            cut = cut.sort_index(level='fd')
+            fd_array = cut.index.get_level_values('fd')
+            cut = cut.astype(np.complex)
+            axes.plot(fd_array, cut.real, ls='', marker=marker, markersize=markersize, color=color, label=legend_label)
 
     if label:
         for i in range(0, time_constants.shape[0]):
