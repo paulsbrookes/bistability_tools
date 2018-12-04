@@ -93,7 +93,6 @@ def locate_fixed_point_mf(params, alpha0=(0, 0), beta0=(0, 0)):
 def fixed_point_tracker(fd_array, params, alpha0=0, beta0=0):
     amplitude_array = np.zeros([fd_array.shape[0], 2], dtype=complex)
     for idx, fd in tqdm(enumerate(fd_array)):
-        print(idx)
         params_instance = deepcopy(params)
         params_instance.fd = fd
         alpha_fixed, beta_fixed = locate_fixed_point_mf(params_instance, alpha0=[alpha0.real, alpha0.imag], beta0=[beta0.real, beta0.imag])
