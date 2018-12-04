@@ -5,6 +5,7 @@ from ..simulation.hamiltonian_gen import coupling_calc
 from cqed_tools.mf.hamiltonian_gen_mf import hamiltonian_mf, collapse_operators_mf
 from copy import deepcopy
 import pandas as pd
+from tqdm import tqdm
 
 
 def dalpha_calc_me(x, L=None, ham=None, c_ops=None):
@@ -91,7 +92,7 @@ def locate_fixed_point_mf(params, alpha0=(0, 0), beta0=(0, 0)):
 
 def fixed_point_tracker(fd_array, params, alpha0=0, beta0=0):
     amplitude_array = np.zeros([fd_array.shape[0], 2], dtype=complex)
-    for idx, fd in enumerate(fd_array):
+    for idx, fd in tqdm(enumerate(fd_array)):
         print(idx)
         params_instance = deepcopy(params)
         params_instance.fd = fd
