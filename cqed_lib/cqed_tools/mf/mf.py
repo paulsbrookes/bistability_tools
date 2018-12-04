@@ -4,6 +4,7 @@ from scipy.optimize import fsolve, root, minimize
 from ..simulation.hamiltonian_gen import coupling_calc
 from cqed_tools.mf.hamiltonian_gen_mf import hamiltonian_mf, collapse_operators_mf
 from copy import deepcopy
+import pandas as pd
 
 
 def dalpha_calc_me(x, L=None, ham=None, c_ops=None):
