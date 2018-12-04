@@ -85,3 +85,17 @@ def locate_fixed_point_mf(params, alpha0=(0, 0), beta0=(0, 0)):
     alpha = res.x[0] + 1j * res.x[1]
     beta = res.x[2] + 1j * res.x[3]
     return alpha, beta
+
+
+def fixed_point_tracer(fd_array, params, alpha0=0, beta0=0):
+    amplitude_array = np.zeros([fd_array.shape[0], 2], dtype=complex)
+    for idx, fd in enumerate(fd_array):
+        print(idx)
+        params_instance = deepcopy(params)
+        params_instance.fd = fd
+        alpha_fixed, beta_fixed = locate_fixed_point_mf(params_instance, alpha0=[alpha0.real, alpha0.imag], beta0=[beta0.real, beta0.imag])
+        amplitude_array[idx, :] = [alpha_fixed, beta_fixed]
+        alpha0, beta0 = alpha_fixed, beta_fixed
+    amplitude_frame = pd.DataFrame(amplitude_array, index=fd_array, columns=['a', 'b'])
+    amplitude_frame.sort_index(inplace=True)
+    return amplitude_frame
