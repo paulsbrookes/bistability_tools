@@ -3,6 +3,7 @@ from qutip import *
 from scipy.optimize import fsolve, root, minimize
 from ..simulation.hamiltonian_gen import coupling_calc
 from cqed_tools.mf.hamiltonian_gen_mf import hamiltonian_mf, collapse_operators_mf
+from copy import deepcopy
 
 
 def dalpha_calc_me(x, L=None, ham=None, c_ops=None):
@@ -87,7 +88,7 @@ def locate_fixed_point_mf(params, alpha0=(0, 0), beta0=(0, 0)):
     return alpha, beta
 
 
-def fixed_point_tracer(fd_array, params, alpha0=0, beta0=0):
+def fixed_point_tracker(fd_array, params, alpha0=0, beta0=0):
     amplitude_array = np.zeros([fd_array.shape[0], 2], dtype=complex)
     for idx, fd in enumerate(fd_array):
         print(idx)
