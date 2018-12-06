@@ -54,7 +54,11 @@ if __name__ == '__main__':
 
     os.chdir(stack_directory)
 
-    command = 'mpiexec -n ' + str(n_threads) + ' python ' + function + '.py ' + stack_directory
+    print(function)
+    if function is 'spectrum':
+        command = 'python spectrum.py ' + stack_directory + ' -n ' + str(n_threads)
+    else:
+        command = 'mpiexec -n ' + str(n_threads) + ' python ' + function + '.py ' + stack_directory
     if function == 'slowdown':
         command += ' -b ' + str(bistable_initial)
     cwd = os.getcwd()
