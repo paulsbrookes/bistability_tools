@@ -3,6 +3,8 @@ import numpy as np
 import scipy
 import pandas as pd
 import numpy as np
+from copy import deepcopy
+from ..simulation import hamiltonian
 
 
 def add_column(df, op, name):
@@ -216,3 +218,18 @@ def expand(rho, new_c_levels):
     new_state = Qobj(padded_contents)
     new_state.dims = [[new_c_levels, t_levels], [new_c_levels, t_levels]]
     return new_state
+
+
+def isolate_metastable(params, alpha, truncated_c_levels, return_alpha=None):
+    params_truncated = deepcopy(params)
+    params_truncated.c_levels = truncated_c_levels
+    ham = hamiltonian(params_truncated, alpha=alpha)
+    c_ops = collapse_operators(params_truncated, alpha=alpha)
+    rho_ss_truncated = steadystate(ham, c_ops)
+    rho_ss = expand(rho_ss_truncated, params.c_levels)
+    if return_alpha is None:
+        displacement_op = tensor(displace(params.c_levels, alpha), qeye(params.t_levels))
+    else:
+        displacement_op = tensor(displace(params.c_levels, return_alpha), qeye(params.t_levels))
+    rho_ss = displacement_op*rho_ss*displacement_op.dag()
+    return rho_ss

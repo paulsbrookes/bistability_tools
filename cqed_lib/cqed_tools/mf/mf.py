@@ -101,3 +101,12 @@ def fixed_point_tracker(fd_array, params, alpha0=0, beta0=0):
     amplitude_frame = pd.DataFrame(amplitude_array, index=fd_array, columns=['a', 'b'])
     amplitude_frame.sort_index(inplace=True)
     return amplitude_frame
+
+
+
+
+
+
+
+
+
