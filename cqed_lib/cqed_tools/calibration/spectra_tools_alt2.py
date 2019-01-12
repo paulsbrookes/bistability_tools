@@ -272,9 +272,10 @@ def transmission_calc_array(queue, results=None, custom=False, method='direct', 
         #try:
         if True:
             steady_state = transmission_calc(arg, results, custom=custom, method=method, options=options)
-            new_result = observables_calc(arg[0],arg[1], steady_state)
-            results = pd.concat([results,new_result])
-            results = results.sort_values('fd_points')
+            if steady_state is not None:
+                new_result = observables_calc(arg[0],arg[1], steady_state)
+                results = pd.concat([results,new_result])
+                results = results.sort_values('fd_points')
 
         #except Exception as e:
         #    print(e)
@@ -408,7 +409,7 @@ def transmission_calc(args, results, custom=False, method='direct', options=Spec
                 rho_ss = steadystate(H, c_ops, method=method)
             completed = True
         except:
-            attempts += 1
+            rho_ss = None
 
     return rho_ss
 

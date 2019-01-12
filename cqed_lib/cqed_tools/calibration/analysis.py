@@ -124,7 +124,7 @@ def load_experimental(path, display=True):
     return dataframe
 
 
-def peak_finder(dataframe, N=1, display=False):
+def peak_finder(dataframe, N=1, display=False, interpolate=True):
     if display:
         fig, axes = plt.subplots(1,1)
     n_powers = dataframe.shape[1]
@@ -135,9 +135,13 @@ def peak_finder(dataframe, N=1, display=False):
         cut = cut.dropna()
         smoothed_index = np.convolve(cut.index, np.ones((N,))/N, mode='valid')
         smoothed_data = np.convolve(cut.values, np.ones((N,))/N, mode='valid')
-        interp_func = interp1d(smoothed_index, smoothed_data, kind='cubic')
-        fine_indices = np.linspace(smoothed_index[0],smoothed_index[-1],2001)
-        fine_values = interp_func(fine_indices)
+        if interpolate:
+            interp_func = interp1d(smoothed_index, smoothed_data, kind='cubic')
+            fine_indices = np.linspace(smoothed_index[0],smoothed_index[-1],2001)
+            fine_values = interp_func(fine_indices)
+        else:
+            fine_indices = smoothed_index
+            fine_values = smoothed_data
         max_idx = np.argmax(fine_values)
         peak_indices.append(fine_indices[max_idx])
         peak_values.append(fine_values[max_idx])

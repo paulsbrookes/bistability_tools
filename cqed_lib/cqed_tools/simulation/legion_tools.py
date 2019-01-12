@@ -5,7 +5,6 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip import *
 import os
 import types
-import numpy as np
 import scipy.integrate
 import pandas as pd
 import pickle
@@ -23,7 +22,6 @@ from qutip.cy.utilities import _cython_build_cleanup
 from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
-from collections import OrderedDict
 from mpi4py import MPI
 
 
