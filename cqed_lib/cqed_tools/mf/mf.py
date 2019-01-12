@@ -85,8 +85,11 @@ def classical_eom_mf(x, params):
 def locate_fixed_point_mf(params, alpha0=(0, 0), beta0=(0, 0)):
     x0 = np.array([alpha0[0], alpha0[1], beta0[0], beta0[1]])
     res = root(classical_eom_mf, x0, args=(params,), method='hybr')
-    alpha = res.x[0] + 1j * res.x[1]
-    beta = res.x[2] + 1j * res.x[3]
+    if res.success:
+        alpha = res.x[0] + 1j * res.x[1]
+        beta = res.x[2] + 1j * res.x[3]
+    else:
+        alpha, beta = None, None
     return alpha, beta
 
 
@@ -100,25 +103,30 @@ def fixed_point_tracker(fd_array, params, alpha0=0, beta0=0, consistency_check=T
             params_instance.fd = fd
             alpha_fixed, beta_fixed = locate_fixed_point_mf(params_instance, alpha0=[alpha0.real, alpha0.imag],
                                                             beta0=[beta0.real, beta0.imag])
-            if consistency_check:
-                params_check = deepcopy(params_instance)
-                params_check.t_levels += 1
-                alpha_check, beta_check = locate_fixed_point_mf(params_instance,
-                                                                alpha0=[alpha_fixed.real, alpha_fixed.imag],
-                                                                beta0=[beta_fixed.real, beta_fixed.imag])
+            if alpha_fixed is None:
+                trip = True
+                amplitude_array[idx, :] = [fill_value, fill_value]
 
-                converged = np.abs(alpha_check - alpha_fixed) < threshold and np.abs(
-                    alpha_check - alpha_fixed) < threshold
-                if not converged:
-                    trip = True
+            if not trip:
+                if consistency_check:
+                    params_check = deepcopy(params_instance)
+                    params_check.t_levels += 1
+                    alpha_check, beta_check = locate_fixed_point_mf(params_instance,
+                                                                    alpha0=[alpha_fixed.real, alpha_fixed.imag],
+                                                                    beta0=[beta_fixed.real, beta_fixed.imag])
 
-                if crosscheck_frame is not None:
-                    alpha_crosscheck = crosscheck_frame['a'].iloc[idx]
-                    beta_crosscheck = crosscheck_frame['b'].iloc[idx]
-                    already_found = np.abs(alpha_crosscheck - alpha_fixed) < threshold and np.abs(
-                        alpha_crosscheck - alpha_fixed) < threshold
-                    if already_found:
+                    converged = np.abs(alpha_check - alpha_fixed) < threshold and np.abs(
+                        alpha_check - alpha_fixed) < threshold
+                    if not converged:
                         trip = True
+
+                    if crosscheck_frame is not None:
+                        alpha_crosscheck = crosscheck_frame['a'].iloc[idx]
+                        beta_crosscheck = crosscheck_frame['b'].iloc[idx]
+                        already_found = np.abs(alpha_crosscheck - alpha_fixed) < threshold and np.abs(
+                            alpha_crosscheck - alpha_fixed) < threshold
+                        if already_found:
+                            trip = True
 
                 if trip:
                     amplitude_array[idx, :] = [fill_value, fill_value]
