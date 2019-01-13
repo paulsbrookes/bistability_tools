@@ -254,7 +254,7 @@ def mf_characterise(base_params, fd_array, alpha0_bright=0, beta0_bright=0, alph
     return mf_amplitude_frame
 
 
-def map_mf(params, threshold=5e-5):
+def map_mf(params, threshold=5e-5, check=False):
     fd_array = np.linspace(10.45, 10.49, 17)
     mf_amplitude_frame = mf_characterise(params, fd_array)
 
@@ -273,6 +273,10 @@ def map_mf(params, threshold=5e-5):
     while df_lower > threshold:
         print(df_lower, 'Extending lower')
         mf_amplitude_frame = extend_lower(mf_amplitude_frame, params)
+        if check:
+            check_success = True
+            while check_success:
+                mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params)
         indices = mf_amplitude_frame.index
         fd_lower2 = mf_amplitude_frame['a_bright'].dropna().index[0]
         fd_lower1_idx = np.argwhere(indices == fd_lower2)[0, 0] - 1
@@ -291,6 +295,10 @@ def map_mf(params, threshold=5e-5):
     while df_upper > threshold:
         print(df_upper, 'Extending upper')
         mf_amplitude_frame = extend_upper(mf_amplitude_frame, params)
+        if check:
+            check_success = True
+            while check_success:
+                mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params)
         indices = mf_amplitude_frame.index
         fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
         fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
