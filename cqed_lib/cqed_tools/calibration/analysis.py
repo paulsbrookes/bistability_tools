@@ -230,3 +230,24 @@ def load_simulated_frame(sweep_path):
     collected_results.sort_index(inplace=True)
 
     return collected_results
+
+
+def results_filter(results, threshold=2.0):
+    y = np.abs(results['a'])
+    x = y.index
+
+    yp = np.diff(y) / np.diff(x)
+    x_mid = np.convolve(0.5 * np.ones(2), x, mode='valid')
+    ypp = np.diff(yp) / np.diff(x_mid)
+
+    deviations = np.abs(ypp - np.mean(ypp)) > threshold * np.std(ypp)
+
+    fail_indices = []
+
+    for i in range(deviations.shape[0] - 2):
+        if np.all(deviations[i:i + 3]):
+            fail_indices.append(i + 2)
+
+    results.drop(results.index[fail_indices], inplace=True)
+
+    return results
