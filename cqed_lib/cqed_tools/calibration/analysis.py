@@ -1,4 +1,5 @@
 from scipy.optimize import curve_fit
+from scipy import signal
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -155,7 +156,50 @@ def peak_finder(dataframe, N=1, display=False, interpolate=True):
     return peak_frame
 
 
-def load_simulated(sweep_path, display=True):
+def load_simulated_frame(sweep_path, filter=False):
+    bottom_levels = []
+    for idx, (dirpath, dirnames, filenames) in enumerate(os.walk(sweep_path)):
+        if not dirnames:
+            bottom_levels.append(dirpath)
+
+    collected_results = None
+
+    for bottom_path in bottom_levels:
+        results = pd.read_hdf(bottom_path + '/results.h5')
+        if filter:
+            results = results_filter(results)
+        params = qload(bottom_path + '/params')
+        results = results.set_index('fd_points')
+        results['epsilon'] = params.eps
+        results = results.reset_index().set_index(['epsilon', 'fd_points'])
+        if collected_results is None:
+            collected_results = [results]
+        else:
+            collected_results.append(results)
+
+    collected_results = collected_results[0].append(collected_results[1:])
+    collected_results.index.names = ['eps', 'fd']
+    collected_results.sort_index(inplace=True)
+
+    return collected_results
+
+
+def results_filter(results, threshold=1.0):
+    y = np.abs(results['a'])
+    x = y.index
+
+    yp = np.diff(y) / np.diff(x)
+    x_mid = np.convolve(0.5 * np.ones(2), x, mode='valid')
+    ypp = np.diff(yp) / np.diff(x_mid)
+    ypp_scaled = ypp / np.std(ypp)
+    fail_indices = signal.find_peaks(ypp_scaled, threshold=threshold)[0]
+
+    filtered_results = results.drop(results.index[fail_indices+1])
+
+    return filtered_results
+
+
+def load_simulated(sweep_path, display=True, filter=True):
     fig, axes = plt.subplots(1, 1)
 
     bottom_levels = []
@@ -174,8 +218,10 @@ def load_simulated(sweep_path, display=True):
 
     for bottom_path in bottom_levels:
         results = pd.read_hdf(bottom_path + '/results.h5')
-        params = qload(bottom_path + '/params')
         results = results.set_index('fd_points')
+        if filter:
+            results = results_filter(results)
+        params = qload(bottom_path + '/params')
         a_abs = np.abs(results['a'])
         a_abs.plot(ax=axes)
         marker = str(1000 * params.eps)
@@ -204,50 +250,3 @@ def load_simulated(sweep_path, display=True):
     legend.set_title(r'$\epsilon$ / MHz')
 
     return simulated_results
-
-
-def load_simulated_frame(sweep_path):
-    bottom_levels = []
-    for idx, (dirpath, dirnames, filenames) in enumerate(os.walk(sweep_path)):
-        if not dirnames:
-            bottom_levels.append(dirpath)
-
-    collected_results = None
-
-    for bottom_path in bottom_levels:
-        results = pd.read_hdf(bottom_path + '/results.h5')
-        params = qload(bottom_path + '/params')
-        results = results.set_index('fd_points')
-        results['epsilon'] = params.eps
-        results = results.reset_index().set_index(['epsilon', 'fd_points'])
-        if collected_results is None:
-            collected_results = [results]
-        else:
-            collected_results.append(results)
-
-    collected_results = collected_results[0].append(collected_results[1:])
-    collected_results.index.names = ['eps', 'fd']
-    collected_results.sort_index(inplace=True)
-
-    return collected_results
-
-
-def results_filter(results, threshold=2.0):
-    y = np.abs(results['a'])
-    x = y.index
-
-    yp = np.diff(y) / np.diff(x)
-    x_mid = np.convolve(0.5 * np.ones(2), x, mode='valid')
-    ypp = np.diff(yp) / np.diff(x_mid)
-
-    deviations = np.abs(ypp - np.mean(ypp)) > threshold * np.std(ypp)
-
-    fail_indices = []
-
-    for i in range(deviations.shape[0] - 2):
-        if np.all(deviations[i:i + 3]):
-            fail_indices.append(i + 2)
-
-    results.drop(results.index[fail_indices], inplace=True)
-
-    return results

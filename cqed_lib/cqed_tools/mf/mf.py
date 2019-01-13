@@ -258,6 +258,9 @@ def map_mf(params, threshold=5e-5, check=False):
     fd_array = np.linspace(10.45, 10.49, 17)
     mf_amplitude_frame = mf_characterise(params, fd_array)
 
+    if mf_amplitude_frame.dropna().shape[0] == 0:
+        return None
+
     while mf_amplitude_frame.dropna().shape[0] == 0:
         mf_amplitude_frame = find_overlap(mf_amplitude_frame, params)
 
