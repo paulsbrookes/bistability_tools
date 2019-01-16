@@ -159,7 +159,7 @@ def find_overlap(mf_amplitude_frame, params):
     alpha0_bright = mf_amplitude_frame['a_bright'].dropna().iloc[0]
     beta0_bright = mf_amplitude_frame['b_bright'].dropna().iloc[0]
     fd_upper = mf_amplitude_frame['a_bright'].dropna().index[0]
-    fd_array = np.linspace(fd_lower, fd_upper, 5)
+    fd_array = np.linspace(fd_lower, fd_upper, 5)[1:-1]
     new_mf_amplitude_frame = mf_characterise(params, fd_array, alpha0_bright=alpha0_bright, beta0_bright=beta0_bright,
                                              alpha0_dim=alpha0_dim, beta0_dim=beta0_dim)
     combined = pd.concat([mf_amplitude_frame, new_mf_amplitude_frame])
@@ -216,7 +216,7 @@ def check_upper(mf_amplitude_frame, params):
     beta0_dim = mf_amplitude_frame['b_dim'].iloc[fd_upper2_idx - 1]
     fd_array = np.array([fd_upper2])
     mf_amplitude_frame_dim = fixed_point_tracker(np.flip(fd_array, axis=0), params, alpha0=alpha0_dim, beta0=beta0_dim)
-    if mf_amplitude_frame_dim.dropna().shape[0]:
+    if mf_amplitude_frame_dim.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_dim.iloc[0].values, mf_amplitude_frame.iloc[fd_upper2_idx][['a_bright', 'b_bright']].values)):
         mf_amplitude_frame.loc[fd_upper2][['a_dim', 'b_dim']] = mf_amplitude_frame_dim.values[0, :]
         success = True
     else:
@@ -235,8 +235,7 @@ def check_lower(mf_amplitude_frame, params):
     print(fd_array, alpha0_bright, beta0_bright)
     mf_amplitude_frame_bright = fixed_point_tracker(np.flip(fd_array, axis=0), params, alpha0=alpha0_bright,
                                                     beta0=beta0_bright)
-    print(mf_amplitude_frame_bright)
-    if mf_amplitude_frame_bright.dropna().shape[0]:
+    if mf_amplitude_frame_bright.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_bright.iloc[0].values, mf_amplitude_frame.iloc[fd_lower1_idx][['a_dim', 'b_dim']].values)):
         mf_amplitude_frame.loc[fd_lower1][['a_bright', 'b_bright']] = mf_amplitude_frame_bright.values[0, :]
         success = True
     else:
@@ -254,11 +253,10 @@ def mf_characterise(base_params, fd_array, alpha0_bright=0, beta0_bright=0, alph
     return mf_amplitude_frame
 
 
-def map_mf(params, threshold=5e-5, check=False):
-    fd_array = np.linspace(10.45, 10.49, 17)
+def map_mf(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.49, 17)):
     mf_amplitude_frame = mf_characterise(params, fd_array)
 
-    if mf_amplitude_frame.dropna().shape[0] == 0:
+    if mf_amplitude_frame['a_dim'].dropna().shape[0] == 0:
         return None
 
     while mf_amplitude_frame.dropna().shape[0] == 0:
