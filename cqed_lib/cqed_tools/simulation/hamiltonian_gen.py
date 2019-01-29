@@ -236,3 +236,7 @@ def hamiltonian_eliminated(params):
     H.dims = dims
     H += params.eps*b.dag() + np.conjugate(params.eps)*b
     return H
+
+
+def a_gen(params):
+    return tensor(destroy(params.c_levels), qeye(params.t_levels))
