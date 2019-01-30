@@ -255,3 +255,8 @@ def load_simulated(sweep_path, display=True, filter=True):
 def power_calc(eps, eps0):
     power = 20*np.log(eps/eps0)/np.log(10)
     return power
+
+
+def eps_calc(power, eps0):
+    eps = eps0*np.exp(power*np.log(10)/20)
+    return eps
