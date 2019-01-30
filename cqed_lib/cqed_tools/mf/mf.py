@@ -319,3 +319,57 @@ def classical_eom_mf_duffing(x, params):
     dalpha = dalpha_calc_mf_duffing(alpha, params)
     dx = np.array([dalpha.real, dalpha.imag])
     return dx
+
+
+def locate_fixed_point_mf_duffing(params, alpha0=(0, 0)):
+    x0 = np.array([alpha0[0], alpha0[1]])
+    res = root(classical_eom_mf_duffing, x0, args=(params,), method='hybr')
+    if res.success:
+        alpha = res.x[0] + 1j * res.x[1]
+    else:
+        alpha = None
+    return alpha
+
+
+def fixed_point_tracker_duffing(fd_array, params, alpha0=0, fill_value=None, threshold=1e-4,
+                                columns=['a'], crosscheck_frame=None):
+    amplitude_array = np.zeros([fd_array.shape[0], 1], dtype=complex)
+    trip = False
+    for idx, fd in tqdm(enumerate(fd_array)):
+        if not trip:
+            params_instance = deepcopy(params)
+            params_instance.fd = fd
+            alpha_fixed = locate_fixed_point_mf_duffing(params_instance, alpha0=[alpha0.real, alpha0.imag])
+            if alpha_fixed is None:
+                # trip = True
+                amplitude_array[idx, :] = [fill_value]
+            else:
+                # print(alpha_fixed)
+                amplitude_array[idx, :] = [alpha_fixed]
+                alpha0 = alpha_fixed
+    amplitude_frame = pd.DataFrame(amplitude_array, index=fd_array, columns=columns)
+    amplitude_frame.sort_index(inplace=True)
+    return amplitude_frame
+
+
+def mf_characterise_duffing(base_params, fd_array):
+    alpha0 = 0
+    mf_amplitude_frame_bright = fixed_point_tracker_duffing(np.flip(fd_array, axis=0), base_params, alpha0=alpha0)
+    mf_amplitude_frame_dim = fixed_point_tracker_duffing(fd_array, base_params, alpha0=alpha0, columns=['a_dim'],
+                                                         crosscheck_frame=mf_amplitude_frame_bright)
+    mf_amplitude_frame_bright.columns = ['a_bright']
+    mf_amplitude_frame = pd.concat([mf_amplitude_frame_bright, mf_amplitude_frame_dim], axis=1)
+
+    overlap_find = ~np.isclose(mf_amplitude_frame['a_bright'].values, mf_amplitude_frame['a_dim'].values)
+
+    if not np.any(overlap_find):
+        mf_amplitude_frame = pd.DataFrame(mf_amplitude_frame.values[:, 0], index=mf_amplitude_frame.index,
+                                          columns=['a'])
+    else:
+        start_idx = np.where(overlap_find)[0][0]
+        end_idx = np.where(overlap_find)[0][-1]
+
+        mf_amplitude_frame['a_bright'].iloc[0:start_idx] = None
+        mf_amplitude_frame['a_dim'].iloc[end_idx + 1:] = None
+
+    return mf_amplitude_frame
