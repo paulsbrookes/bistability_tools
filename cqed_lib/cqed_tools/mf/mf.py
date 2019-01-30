@@ -309,3 +309,13 @@ def map_mf(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.4
     return mf_amplitude_frame
 
 
+def dalpha_calc_mf_duffing(alpha, params):
+    dalpha = params.eps - 1j*(params.fc-params.fd)*alpha - 2*1j*params.chi*alpha*np.abs(alpha)**2 - 0.5*params.kappa*alpha
+    return dalpha
+
+
+def classical_eom_mf_duffing(x, params):
+    alpha = x[0] + 1j * x[1]
+    dalpha = dalpha_calc_mf_duffing(alpha, params)
+    dx = np.array([dalpha.real, dalpha.imag])
+    return dx
