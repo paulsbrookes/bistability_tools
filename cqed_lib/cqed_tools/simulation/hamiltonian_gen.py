@@ -240,3 +240,17 @@ def hamiltonian_eliminated(params):
 
 def a_gen(params):
     return tensor(destroy(params.c_levels), qeye(params.t_levels))
+
+
+def ham_duffing_gen(params):
+    a = destroy(params.c_levels)
+    H = (params.fc-params.fd)*a.dag()*a + params.chi*a.dag()*a.dag()*a*a + 1j*params.eps*(a.dag()-a)
+    return H
+
+
+def c_ops_duffing_gen(params):
+    a = destroy(params.c_levels)
+    c_ops = [np.sqrt((1+params.n_c)*params.kappa)*a]
+    if params.n_c > 0.0:
+        c_ops.append(np.sqrt(params.n_c*params.kappa)*a.dag())
+    return c_ops
