@@ -250,3 +250,8 @@ def load_simulated(sweep_path, display=True, filter=True):
     legend.set_title(r'$\epsilon$ / MHz')
 
     return simulated_results
+
+
+def power_calc(eps, eps0):
+    power = 20*np.log(eps/eps0)/np.log(10)
+    return power
