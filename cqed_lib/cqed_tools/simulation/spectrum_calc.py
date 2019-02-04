@@ -1,4 +1,5 @@
 from .legion_tools import *
+from collections import OrderedDict
 
 
 def spectrum_calc(job_index, output_directory='./results', save_state=False):
