@@ -658,7 +658,6 @@ def _generic_ode_solve_checkpoint(r, rho0, tlist, e_ops, opt, progress_bar, save
 
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
-        print(1.0 * t / end_time)
 
         if not r.successful():
             raise Exception("ODE integration error: Try to increase "
@@ -1084,12 +1083,6 @@ def manage_jobs():
         with open('register.csv', 'w') as f:
             register.to_csv(f)
 
-    #for job_index in range(n_jobs):
-    #    stack_frame.iloc[job_index, -1] = 0
-    #with open('stack.csv', 'w') as f:
-    #    f.write(stack_name + '\n')
-    #    stack_frame.to_csv(f)
-
     while True:
 
         message = np.empty(1, dtype='i')
@@ -1130,7 +1123,6 @@ def manage_jobs():
 
 
 def mpi_allocator(job, args, kwargs):
-    print('In mpi_allocator we have kwargs = ',kwargs)
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     status = MPI.Status()

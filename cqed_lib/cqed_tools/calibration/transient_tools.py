@@ -360,7 +360,6 @@ def generic_ode_solve_checkpoint(r, rho0, tlist, e_ops, opt, progress_bar, save,
 
     for t_idx, t in tqdm(enumerate(tlist)):
         progress_bar.update(t_idx)
-        #print 1.0*t/end_time
 
         if not r.successful():
             raise Exception("ODE integration error: Try to increase "
