@@ -13,7 +13,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--stack', default='stack.csv', type=str)
     parser.add_argument('-f', '--function', default='spectrum', type=str)
     parser.add_argument('-b', '--bistable_initial', default=True, type=str2bool)
-    parser.add_argument('-n', '--n_threads', default=72, type=int)
+    parser.add_argument('-n', '--n_threads', default=1, type=int)
     args = parser.parse_args()
     output_directory = args.output
     output_directory = os.path.abspath(output_directory)
