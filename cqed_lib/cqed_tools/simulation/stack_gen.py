@@ -2,7 +2,7 @@ from scipy import interpolate
 import numpy as np
 
 power_list = [-17, -16, -15, -14]
-fd1_list = [10.4722, 10.4716, 10.4708, 10.4705]
+fd1_list = [10.4720, 10.4710, 10.4705, 10.4700]
 fd2_list = [10.4732, 10.4728, 10.4725, 10.4723]
 
 fd1_func = interpolate.interp1d(power_list, fd1_list)
