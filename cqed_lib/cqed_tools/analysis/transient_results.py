@@ -14,6 +14,7 @@ class TransientResults:
         self.ss_results = None
         self.directory = directory
         self.fit = None
+        self.list = []
         walk = os.walk(directory)
         for path_info in walk:
             path = path_info[0]
@@ -23,12 +24,14 @@ class TransientResults:
                 ss_results['eps'] = settings.eps
                 ss_results['fd'] = settings.fd
                 ss_results.set_index(['eps', 'fd'], append=True, inplace=True)
+                self.list.append(ss_results)
                 if self.ss_results is None:
                     self.ss_results = ss_results
                 else:
-                    self.ss_results = pd.concat([self.ss_results, ss_results])
+                    self.ss_results = pd.concat([self.ss_results, ss_results], sort=True)
         self.ss_results['a_exp'] = self.ss_results['a_op_re'] + 1j * self.ss_results['a_op_im']
         self.ss_results['b_exp'] = self.ss_results['sm_op_re'] + 1j * self.ss_results['sm_op_im']
+
         self.ss_results.sort_index(inplace=True)
 
     def plot_transmission(self, axes=None, label=True):
@@ -84,7 +87,7 @@ class TransientResults:
                 if self.transients is None:
                     self.transients = results
                 else:
-                    self.transients = pd.concat([self.transients, results])
+                    self.transients = pd.concat([self.transients, results], sort=True)
         self.transients = self.transients.reorder_levels(['job_index', 'eps', 'fd', 'times'])
         self.transients.sort_index(inplace=True)
 
@@ -126,7 +129,7 @@ class TransientResults:
             if self.fit_params is None:
                 self.fit_params = fit_params
             else:
-                self.fit_params = pd.concat([self.fit_params, fit_params])
+                self.fit_params = pd.concat([self.fit_params, fit_params], sort=True)
             self.fit_params.sort_index(inplace=True)
 
     def slowdown_calc(self):
