@@ -169,7 +169,7 @@ class Queue:
         self.fd_points = self.fd_points[sort_indices]
         self.params = self.params[sort_indices]
 
-    def curvature_generate(self, results, threshold = 0.05):
+    def curvature_generate(self, results, threshold=0.05):
         curvature_info = CurvatureInfo(results, threshold)
         self.fd_points = curvature_info.new_points()
         self.params = hilbert_interpolation(self.fd_points, results)
