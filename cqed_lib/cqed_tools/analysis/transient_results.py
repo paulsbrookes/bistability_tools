@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 from .loading import load_settings
 from .fitting import decay_gen
 
@@ -12,7 +13,7 @@ class TransientResults:
         self.exp_results = None
         self.fit_params = None
         self.ss_results = None
-        self.directory = directory
+        self.axes = None
         self.fit = None
         self.list = []
         walk = os.walk(directory)
@@ -51,7 +52,7 @@ class TransientResults:
                 for index, fd, trans in zip(index_array, fd_array, transmission_array):
                     axes.annotate(index, (fd, trans))
 
-    def plot_slowdown(self, axes=None, label=True):
+    def plot_slowdown(self, axes=None, eps_indices=None, label=True, legend=False, ls='-', interpolate=True):
         if self.fit_params is None:
             self.slowdown_calc()
         if axes is None:
@@ -60,20 +61,53 @@ class TransientResults:
         axes.set_ylabel(r'$T_s$ ($\mu$s)')
         eps_level_idx = self.ss_results.index.names.index('eps')
         eps_array = self.ss_results.index.levels[eps_level_idx]
+        if eps_indices is not None:
+            eps_array = eps_array[eps_indices]
         for eps in eps_array:
             cut = self.fit_params.xs(eps, level='eps')
             fd_array = cut.index.get_level_values('fd')
             slowdown_array = np.abs(cut['Ts'])
-            index_array = cut.index.get_level_values('job_index')
-            axes.plot(fd_array, slowdown_array, marker='o')
-            if label:
-                for index, fd, Ts in zip(index_array, fd_array, slowdown_array):
-                    axes.annotate(index, (fd, Ts))
+            if legend:
+                legend_label = eps
+            else:
+                legend_label = ''
+            if interpolate:
+                new_fd_array = np.linspace(fd_array[0], fd_array[-1], 201)
+                interp_func = interp1d(fd_array, slowdown_array, kind='cubic')
+                axes.plot(new_fd_array, interp_func(new_fd_array), ls=ls, label=legend_label)
+            else:
+                axes.plot(fd_array, slowdown_array, marker='o', label=legend_label, ls=ls)
+                if label:
+                    index_array = cut.index.get_level_values('job_index')
+                    for index, fd, Ts in zip(index_array, fd_array, slowdown_array):
+                        axes.annotate(index, (fd, Ts))
 
-    def load_transients(self):
+    def plot_slowdown_exp(self, axes=None, threshold=10.0, powers=None, errors=True, legend_label=True, ls='-'):
+        if axes is None:
+            if self.axes is None:
+                fig, axes = plt.subplots(1, 1, figsize=(10, 6))
+                self.axes = axes
+            else:
+                axes = self.axes
+        mask = self.exp_results['error'] < threshold
+        self.exp_results_pruned = self.exp_results[mask]
+        if powers is None:
+            powers = self.exp_results_pruned.index.levels[0]
+        for power in powers:
+            cut = self.exp_results_pruned.xs(power, level=0, drop_level=False)
+            if legend_label:
+                label = power
+            else:
+                label = ''
+            if errors:
+                axes.errorbar(cut.index.get_level_values('fd'), cut['Ts'].values, yerr=cut['error'], label=label, ls=ls)
+            else:
+                axes.plot(cut.index.get_level_values('fd'), cut['Ts'].values, label=label, ls=ls)
+
+    def load_transients(self, directory):
         self.transients = None
         self.slowdown = None
-        walk = os.walk(self.directory)
+        walk = os.walk(directory)
         for path_info in walk:
             path = path_info[0]
             if os.path.exists(path + '/results.csv'):
