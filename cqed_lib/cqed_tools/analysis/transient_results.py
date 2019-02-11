@@ -52,7 +52,7 @@ class TransientResults:
                 for index, fd, trans in zip(index_array, fd_array, transmission_array):
                     axes.annotate(index, (fd, trans))
 
-    def plot_slowdown(self, axes=None, eps_indices=None, label=True, legend=False, ls='-', interpolate=True):
+    def plot_slowdown(self, axes=None, eps_indices=None, label=True, legend=False, interpolate=True, kwargs=dict()):
         if self.fit_params is None:
             self.slowdown_calc()
         if axes is None:
@@ -74,15 +74,15 @@ class TransientResults:
             if interpolate:
                 new_fd_array = np.linspace(fd_array[0], fd_array[-1], 201)
                 interp_func = interp1d(fd_array, slowdown_array, kind='cubic')
-                axes.plot(new_fd_array, interp_func(new_fd_array), ls=ls, label=legend_label)
+                axes.plot(new_fd_array, interp_func(new_fd_array), label=legend_label, **kwargs)
             else:
-                axes.plot(fd_array, slowdown_array, marker='o', label=legend_label, ls=ls)
+                axes.plot(fd_array, slowdown_array, label=legend_label, **kwargs)
                 if label:
                     index_array = cut.index.get_level_values('job_index')
                     for index, fd, Ts in zip(index_array, fd_array, slowdown_array):
                         axes.annotate(index, (fd, Ts))
 
-    def plot_slowdown_exp(self, axes=None, threshold=10.0, powers=None, errors=True, legend_label=True, ls='-'):
+    def plot_slowdown_exp(self, axes=None, threshold=10.0, powers=None, errors=True, legend_label=True, kwargs=dict()):
         if axes is None:
             if self.axes is None:
                 fig, axes = plt.subplots(1, 1, figsize=(10, 6))
@@ -100,9 +100,10 @@ class TransientResults:
             else:
                 label = ''
             if errors:
-                axes.errorbar(cut.index.get_level_values('fd'), cut['Ts'].values, yerr=cut['error'], label=label, ls=ls)
+                axes.errorbar(cut.index.get_level_values('fd'), cut['Ts'].values, yerr=cut['error'], label=label,
+                              **kwargs)
             else:
-                axes.plot(cut.index.get_level_values('fd'), cut['Ts'].values, label=label, ls=ls)
+                axes.plot(cut.index.get_level_values('fd'), cut['Ts'].values, label=label, **kwargs)
 
     def load_transients(self, directory):
         self.transients = None
