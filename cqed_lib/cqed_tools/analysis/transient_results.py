@@ -32,7 +32,6 @@ class TransientResults:
                     self.ss_results = pd.concat([self.ss_results, ss_results], sort=True)
         self.ss_results['a_exp'] = self.ss_results['a_op_re'] + 1j * self.ss_results['a_op_im']
         self.ss_results['b_exp'] = self.ss_results['sm_op_re'] + 1j * self.ss_results['sm_op_im']
-
         self.ss_results.sort_index(inplace=True)
 
     def plot_transmission(self, axes=None, label=True):

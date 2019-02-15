@@ -22,6 +22,7 @@ from tqdm import tqdm
 import sys
 import h5py
 import copy
+from scipy.misc import derivative as scipy_derivative
 
 
 class SpectroscopyOptions:
@@ -792,3 +793,22 @@ def hdf_append(path,data,key):
 
     combined = loaded.append(data)
     combined.to_hdf(path,key=key,mode='a')
+
+
+def new_x_gen(x, y, dx=1e-6, threshold=0.1):
+    interp_func = interp1d(x,y,kind='cubic',fill_value='extrpolate')
+    midpoints = np.convolve(x, 0.5*np.ones(2), mode='valid')
+    curvatures = scipy_derivative(interp_func, midpoints, dx=dx, n=2)
+    midpoint_y = interp_func(midpoints)
+    normed_curvatures = np.abs(curvatures)/midpoint_y
+    intervals = np.diff(x)
+    num_of_sections_required = np.ceil(intervals*np.sqrt(normed_curvatures/threshold)).astype(int)
+    new_x = np.array([])
+    n_points = x.shape[0]
+    for index in np.arange(n_points-1):
+        multi_section = np.linspace(x[index], x[index+1], num_of_sections_required[index] + 1)
+        new_x = np.concatenate((new_x, multi_section))
+    unique_set = set(new_x) - set(x)
+    new_x_unique = np.array(list(unique_set))
+    return new_x_unique
+

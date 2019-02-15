@@ -103,6 +103,15 @@ def mf_characterise(base_params, fd_array, c_matrices=None):
     return mf_amplitude_frame
 
 
+def mf_calc(base_params):
+    fd = base_params.fd
+    fd_array = np.linspace(10.44, 10.5, 2001)
+    fd_array = np.hstack([fd_array, fd])
+    fd_array = np.unique(np.sort(fd_array))
+    mf_amplitude_frame = mf_characterise(base_params, fd_array)
+    return mf_amplitude_frame.loc[fd]
+
+
 
 
 

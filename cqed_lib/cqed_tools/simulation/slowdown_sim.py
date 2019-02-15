@@ -2,7 +2,7 @@ from .legion_tools import *
 from .hamiltonian_gen import *
 
 
-def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False):
+def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False, mf_init=True, g=np.sqrt(2)):
 
     bistable_initial = bistable_initial
     transmon = transmon
@@ -71,8 +71,29 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             bistability_characteristics = dict()
             if os.path.exists('./steady_state.qu'):
                 rho_ss = qload('steady_state')
-                bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
-                print(bistability,rho_bright)
+                if mf_init:
+                    mf_amplitudes = mf_calc(packaged_params)
+                    if mf_amplitudes.dropna().shape[0] == 4:
+                        bistability = True
+
+                        bright_alpha = mf_amplitudes.a_bright
+                        bright_projector = tensor(coherent_dm(packaged_params.c_levels, g*bright_alpha), qeye(packaged_params.t_levels))
+                        rho_bright = bright_projector * rho_ss
+                        rho_bright /= rho_bright.norm()
+
+                        dim_alpha = mf_amplitudes.a_dim
+                        dim_projector = tensor(coherent_dm(packaged_params.c_levels, g*dim_alpha), qeye(packaged_params.t_levels))
+                        rho_dim = dim_projector * rho_ss
+                        rho_dim /= rho_dim.norm()
+
+                    else:
+                        bistability = False
+                        rho_dim = None
+                        rho_bright = None
+                        characteristics = None
+
+                else:
+                    bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
                 if sys_params.qubit_state == 0:
                     print('Dim initial state.')
                     initial_state = rho_dim
