@@ -1,6 +1,7 @@
 from .legion_tools import *
 from .hamiltonian_gen import *
 from ..mf import mf_calc
+from collections import OrderedDict
 
 
 def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False, mf_init=True, g=np.sqrt(2)):
@@ -73,6 +74,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             if os.path.exists('./steady_state.qu'):
                 rho_ss = qload('steady_state')
                 if mf_init:
+                    print('mf_init is true')
                     mf_amplitudes = mf_calc(packaged_params)
                     if mf_amplitudes.dropna().shape[0] == 4:
                         bistability = True
