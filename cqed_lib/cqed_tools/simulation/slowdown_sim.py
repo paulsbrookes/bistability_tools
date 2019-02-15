@@ -1,6 +1,6 @@
 from .legion_tools import *
 from .hamiltonian_gen import *
-
+from ..mf import mf_calc
 
 def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False, mf_init=True, g=np.sqrt(2)):
 
