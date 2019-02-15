@@ -51,7 +51,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
     print('The working directory for the current job index is ' + str(directory))
     sys_params.to_csv('settings.csv')
 
-    options = Options(nsteps=2000000000)
+    options = Options(nsteps=200000000000)
 
     if os.path.exists('./state_checkpoint.qu'):
         print('Loading state checkpoint for job_index = '+str(sys_params.job_index))
