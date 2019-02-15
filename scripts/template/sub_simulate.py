@@ -86,7 +86,6 @@ if __name__ == '__main__':
         "module load qutip/4.1.0/python-2.7.12\n"
     else:
         content += "conda activate bistable\n" \
-        "#$ -ac allow=LMNOPQSTU\n"
 
     if method == 'mpi':
         content += "# 6. Select required number of threads.\n" \
