@@ -2,6 +2,7 @@ from .legion_tools import *
 from .hamiltonian_gen import *
 from ..mf import mf_calc
 
+
 def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False, mf_init=True, g=np.sqrt(2)):
 
     bistable_initial = bistable_initial
@@ -86,14 +87,16 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
                         rho_dim = dim_projector * rho_ss
                         rho_dim /= rho_dim.norm()
 
+                        characteristics = None
+
                     else:
                         bistability = False
                         rho_dim = None
                         rho_bright = None
                         characteristics = None
-
                 else:
-                    bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+                    raise AssertionError
+                    #bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
                 if sys_params.qubit_state == 0:
                     print('Dim initial state.')
                     initial_state = rho_dim
