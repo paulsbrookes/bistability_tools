@@ -97,8 +97,8 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
                         rho_bright = None
                         characteristics = None
                 else:
-                    raise AssertionError
-                    #bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
+                    #raise AssertionError
+                    bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
                 if sys_params.qubit_state == 0:
                     print('Dim initial state.')
                     initial_state = rho_dim
