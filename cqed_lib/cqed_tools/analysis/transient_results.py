@@ -10,6 +10,7 @@ from .fitting import decay_gen
 
 class TransientResults:
     def __init__(self, directory):
+        self.defect_list = []
         self.exp_results = None
         self.fit_params = None
         self.ss_results = None
@@ -56,6 +57,8 @@ class TransientResults:
             self.slowdown_calc()
         if axes is None:
             fig, axes = plt.subplots(1, 1, figsize=(10, 6))
+        self.fit_params_pruned = self.fit_params.drop(labels=self.defect_list, level='job_index')
+        self.fit_params_pruned.sort_index(level='fd', inplace=True)
         axes.set_xlabel(r'$f_d$ (GHz)')
         axes.set_ylabel(r'$T_s$ ($\mu$s)')
         eps_level_idx = self.ss_results.index.names.index('eps')
@@ -63,8 +66,10 @@ class TransientResults:
         if eps_indices is not None:
             eps_array = eps_array[eps_indices]
         for eps in eps_array:
-            cut = self.fit_params.xs(eps, level='eps')
-            fd_array = cut.index.get_level_values('fd')
+            cut = self.fit_params_pruned.xs(eps, level='eps')
+            cut = cut.reset_index()
+            cut = cut.drop_duplicates(subset='fd')
+            fd_array = cut['fd'].values
             slowdown_array = np.abs(cut['Ts'])
             if legend:
                 legend_label = eps
@@ -77,7 +82,7 @@ class TransientResults:
             else:
                 axes.plot(fd_array, slowdown_array, label=legend_label, **kwargs)
                 if label:
-                    index_array = cut.index.get_level_values('job_index')
+                    index_array = cut['job_index'].values
                     for index, fd, Ts in zip(index_array, fd_array, slowdown_array):
                         axes.annotate(index, (fd, Ts))
 
@@ -170,7 +175,10 @@ class TransientResults:
         transient_indices = self.transients.index.droplevel('times')
         steadystate_indices = self.ss_results.index
         for index in set(transient_indices).intersection(steadystate_indices):
-            self.fit_transient(index)
+            try:
+                self.fit_transient(index)
+            except:
+                print(index)
 
     def load_exp(self, path):
         self.exp_results = pd.read_hdf(path)

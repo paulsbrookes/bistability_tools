@@ -4,6 +4,7 @@ import subprocess
 import pandas as pd
 from distutils.dir_util import copy_tree
 from cqed_tools.simulation import str2bool
+import numpy as np
 
 
 if __name__ == '__main__':
