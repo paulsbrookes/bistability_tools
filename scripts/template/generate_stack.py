@@ -1,18 +1,21 @@
 import pandas as pd
 import numpy as np
 from qutip import qload
-from cqed_tools.calibration import fd1_func, fd2_func, frequencies_gen, t_gen, c_gen
+from cqed_tools.simulation import fd1_func, fd2_func, frequencies_gen, t_gen, c_gen
 from cqed_tools.mf import mf_characterise
 from copy import deepcopy
-from cqed_tools.simulation import eps_calc
+from cqed_tools.calibration import eps_calc
+import os
 
 
-name = 'ID=15-0_high_power_twochi=15-1MHz_alpha=-0-21896_kappa=1-3MHz_nc=0-03_nt=0_eps0=2-41MHz'
-power_list = np.array([-16])
-group_folders = ['-16dBm']
+dirpath = os.getcwd()
+name = os.path.basename(dirpath)
+power_list = np.array([-18, -17, -16, -15, -14, -13, -12])
+group_folders = ['-18dBm', '-17dBm', '-16dBm', '-15dBm', '-14dBm', '-13dBm', '-12dBm']
+n_points = 21
 
 
-if __name__ == 'main':
+if __name__ == '__main__':
 
 
     power_calibration = pd.read_csv('./power_calibration.csv', header=None, index_col=0)
@@ -53,9 +56,9 @@ if __name__ == 'main':
         fd0_list.append(mf_amplitude_frame.dropna().index[0])
         fd3_list.append(mf_amplitude_frame.dropna().index[-1])
         
-    df0_list = [0.001 for param in sweep_list]
-    df1_list = [0.0001 for param in sweep_list]
-    df2_list = [0.0002 for param in sweep_list]
+    df0_list = [0.0002 for param in sweep_list]
+    df1_list = [100.0 for idx, param in enumerate(sweep_list)]
+    df2_list = [100.0 for param in sweep_list]
     
     
     
@@ -70,8 +73,8 @@ if __name__ == 'main':
     Ej_list = [base_Ej for param in sweep_list]
     
     eps_list = np.array(eps_list)
-    t_list = t_gen(eps_list)
-    c_list = c_gen(eps_list)
+    t_list = t_gen(eps_list) + 2
+    c_list = c_gen(eps_list) + 10
     
     content = [eps_list, fd0_list, fd1_list, fd2_list, fd3_list, df0_list, df1_list, df2_list, t_list, c_list, endtime_list, snapshots_list, group_folders, gamma_list, nc_list,kappa_list,nt_list,g_list,gamma_phi_list,Ec_list,Ej_list,fc_list]
     
@@ -90,7 +93,8 @@ if __name__ == 'main':
     
     for index in range(recipe.shape[0]):
         row = recipe.iloc[index,:]
-        frequencies = frequencies_gen(row.fd0, row.fd1, row.fd2, row.fd3, row.df0, row.df1, row.df2)
+        frequencies = np.arange(row.fd0, row.fd1, 0.0005)
+        #frequencies = frequencies_gen(row.fd0, row.fd1, row.fd2, row.fd3, row.df0, row.df1, row.df2)
     
         #arrays = np.meshgrid(row.eps, frequencies, qubit_states, row.t_levels, row.c_levels, fc, Ej, g, Ec, kappa, gamma, gamma_phi, n_t, n_c, row.endtime, row.snapshots, 1, completed, running, indexing='ij')
         arrays = np.meshgrid(row.eps, frequencies, qubit_states, row.t_levels, row.c_levels, row.fc, row.Ej, row.g, row.Ec, row.kappa, row.gamma, row.gamma_phi, row.n_t, row.n_c, row.endtime, row.snapshots, row.group_folder, indexing='ij')
