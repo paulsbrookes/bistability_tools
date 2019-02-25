@@ -14,7 +14,6 @@ if __name__ == '__main__':
     output_directory = args.output_directory
     bistable_initial = args.bistable_initial
     transformation = args.transformation
-    args = []
     kwargs = dict()
     kwargs['output_directory'] = output_directory
     kwargs['bistable_initial'] = bistable_initial
@@ -22,4 +21,5 @@ if __name__ == '__main__':
     kwargs['g'] = args.g
     kwargs['mf_init'] = args.mf_init
     print('In slowdown.py we have bistable_initial = ' + str(bistable_initial))
-    mpi_allocator(slowdown_sim, args, kwargs)
+    sim_args = []
+    mpi_allocator(slowdown_sim, sim_args, kwargs)

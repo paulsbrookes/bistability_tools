@@ -76,9 +76,9 @@ def fixed_point_tracker(fd_array, params, c_matrices, alpha0=0, beta0=0, fill_va
     return amplitude_frame
 
 
-def mf_characterise(base_params, fd_array, c_matrices=None):
+def mf_characterise(base_params, fd_array, c_matrices=None, duffing=False):
     if c_matrices is None:
-        c_matrices = c_matrices_gen(base_params)
+        c_matrices = c_matrices_gen(base_params, duffing=duffing)
     alpha0 = 0
     mf_amplitude_frame_bright = fixed_point_tracker(np.flip(fd_array, axis=0), base_params, c_matrices, alpha0=alpha0)
     mf_amplitude_frame_dim = fixed_point_tracker(fd_array, base_params, c_matrices, alpha0=alpha0,
@@ -103,13 +103,7 @@ def mf_characterise(base_params, fd_array, c_matrices=None):
     return mf_amplitude_frame
 
 
-def mf_calc(base_params):
-    fd = base_params.fd
-    fd_array = np.linspace(10.44, 10.5, 2001)
-    fd_array = np.hstack([fd_array, fd])
-    fd_array = np.unique(np.sort(fd_array))
-    mf_amplitude_frame = mf_characterise(base_params, fd_array)
-    return mf_amplitude_frame.loc[fd]
+
 
 
 

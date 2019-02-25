@@ -6,7 +6,6 @@ from distutils.dir_util import copy_tree
 from cqed_tools.simulation import str2bool
 import numpy as np
 
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Specify output directory.')
@@ -73,8 +72,8 @@ if __name__ == '__main__':
     "#$ -l mem=1G\n\n" \
     "# 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)\n" \
     "#$ -l tmpfs=1G\n\n" \
-    "#$ -o ./output\n" \
-    "#$ -e ./output\n" \
+    "#$ -o ./output/\n" \
+    "#$ -e ./output/\n" \
     "# 7. Set the working directory to somewhere in your scratch space. This is\n" \
     "# a necessary step with the upgraded software stack as compute nodes cannot\n" \
     "# write to \$HOME.\n" \
@@ -87,6 +86,7 @@ if __name__ == '__main__':
         "module load qutip/4.1.0/python-2.7.12\n"
     else:
         content += "conda activate bistable\n" \
+        "#$ -ac allow=LMNOPQSTU\n"
 
     if method == 'mpi':
         content += "# 6. Select required number of threads.\n" \
