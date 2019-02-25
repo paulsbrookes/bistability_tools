@@ -16,5 +16,5 @@ class DefaultParameters(Parameters):
         fd = 9.27594
         t_levels = 3
         c_levels = 3
-        Parameters.__init__(self, fc, Ej, g, Ec, eps, fd, kappa, gamma, t_levels, c_levels, gamma_phi, kappa_phi, n_t,
-                            n_c)
+        Parameters.__init__(self, fc=None, Ej=None, g=None, Ec=None, eps=None, fd=None, kappa=None, gamma=None, t_levels=None, c_levels=None, gamma_phi=None, kappa_phi=None, n_t=None,
+                            n_c=None)
