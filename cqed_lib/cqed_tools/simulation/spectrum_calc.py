@@ -24,7 +24,7 @@ def spectrum_calc(job_index, output_directory='./results', save_state=False):
     cwd = os.getcwd()
     os.chdir(directory)
     print('Entering directory: '+directory)
-    sys_params.to_csv('settings.csv')
+    sys_params.to_csv('settings.csv', header=False)
 
     H = hamiltonian(packaged_params)
     qsave(H,'spectrum_hamiltonian')

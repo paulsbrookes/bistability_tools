@@ -40,7 +40,7 @@ def mcsolve_sim(job_index, stack_directory='./results', transmon=True, bistable_
     cwd = os.getcwd()
     os.chdir(directory)
     print(directory)
-    sys_params.to_csv('settings.csv')
+    sys_params.to_csv('settings.csv', header=False)
 
     #options = Options(nsteps=2000000000)
 

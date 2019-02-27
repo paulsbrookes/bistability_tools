@@ -29,7 +29,7 @@ def liouvillian_sim(job_index, output_directory='./results'):
     cwd = os.getcwd()
     os.chdir(directory)
     print(directory)
-    sys_params.to_csv('settings.csv')
+    sys_params.to_csv('settings.csv', header=False)
 
     H = hamiltonian(packaged_params)
     c_ops = collapse_operators(packaged_params)
