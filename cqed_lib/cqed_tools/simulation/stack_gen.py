@@ -1,9 +1,10 @@
 from scipy import interpolate
 import numpy as np
 
-power_list = [-17, -16, -15, -14]
-fd1_list = [10.4720, 10.4710, 10.4705, 10.4700]
-fd2_list = [10.4732, 10.4728, 10.4725, 10.4723]
+power_list = [-18, -17, -16, -15, -14, -13, -12, -11, -10]
+fd1_list = [10.4724, 10.4720, 10.4710, 10.4705, 10.4700, 10.469, 10.468, 10.467, 10.466]
+fd2_list = [10.4734, 10.4732, 10.4728, 10.4725, 10.4723, 10.4723, 10.4720, 10.4717, 10.4714]
+fd_peak_list = []
 
 fd1_func = interpolate.interp1d(power_list, fd1_list)
 fd2_func = interpolate.interp1d(power_list, fd2_list)

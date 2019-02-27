@@ -4,7 +4,7 @@ import subprocess
 import pandas as pd
 from distutils.dir_util import copy_tree
 from cqed_tools.simulation import str2bool
-
+import numpy as np
 
 if __name__ == '__main__':
 
@@ -19,6 +19,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--avx', default=False, type=str2bool)
     parser.add_argument('-b', '--bistable', default=True, type=str2bool)
     parser.add_argument('-t', '--transformation', default=False, type=str2bool)
+    parser.add_argument('-mf', '--mf_init', default=False, type=str2bool)
+    parser.add_argument('-g', '--g', default=np.sqrt(2), type=float)
     args = parser.parse_args()
     output_directory = args.output
     output_directory = os.path.abspath(output_directory)
@@ -31,6 +33,8 @@ if __name__ == '__main__':
     avx = args.avx
     bistable_initial = args.bistable
     transformation = args.transformation
+    mf_init = args.mf_init
+    g = args.g
 
     with open(stack_path, 'r') as f:
         header = f.readline()
@@ -68,8 +72,8 @@ if __name__ == '__main__':
     "#$ -l mem=1G\n\n" \
     "# 4. Request 15 gigabyte of TMPDIR space (default is 10 GB)\n" \
     "#$ -l tmpfs=1G\n\n" \
-    "#$ -o ./output\n" \
-    "#$ -e ./output\n" \
+    "#$ -o ./output/\n" \
+    "#$ -e ./output/\n" \
     "# 7. Set the working directory to somewhere in your scratch space. This is\n" \
     "# a necessary step with the upgraded software stack as compute nodes cannot\n" \
     "# write to \$HOME.\n" \
@@ -88,7 +92,7 @@ if __name__ == '__main__':
         content += "# 6. Select required number of threads.\n" \
     	"#$ -pe mpi " + str(n_threads) + " \n\n" \
     	"# 8. Run the application.\n" \
-    	"gerun python " + function + ".py " + stack_directory + ' -b ' + str(bistable_initial) + ' -t ' + str(transformation)
+    	"gerun python " + function + ".py " + stack_directory + ' -b ' + str(bistable_initial) + ' -t ' + str(transformation) + ' -mf ' + str(mf_init) + ' -g ' + str(g)
     elif method == 'array':
         content += "#$ -t 1-" + str(n_rows) + "\n" \
     	"#$ -pe smp 1\n" \

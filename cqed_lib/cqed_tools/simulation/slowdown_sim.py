@@ -1,11 +1,20 @@
 from .legion_tools import *
 from .hamiltonian_gen import *
+from collections import OrderedDict
 
 
-def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False):
+def mf_calc(base_params):
+    fd = base_params.fd
+    fd_array = np.linspace(10.44, 10.5, 2001)
+    fd_array = np.hstack([fd_array, fd])
+    fd_array = np.unique(np.sort(fd_array))
+    mf_amplitude_frame = mf_characterise(base_params, fd_array)
+    return mf_amplitude_frame.loc[fd]
+
+
+def slowdown_sim(job_index, output_directory='./results', bistable_initial=True, transmon=True, transformation=False, mf_init=False, g=np.sqrt(2)):
 
     bistable_initial = bistable_initial
-    transmon = transmon
 
     print('In slowdown_sim.py we have bistable_initial = ' + str(bistable_initial) + ' for job_index = ' + str(job_index))
 
@@ -49,7 +58,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
     print('The working directory for the current job index is ' + str(directory))
     sys_params.to_csv('settings.csv')
 
-    options = Options(nsteps=2000000000)
+    options = Options(nsteps=1e6)
 
     if os.path.exists('./state_checkpoint.qu'):
         print('Loading state checkpoint for job_index = '+str(sys_params.job_index))
@@ -71,8 +80,33 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
             bistability_characteristics = dict()
             if os.path.exists('./steady_state.qu'):
                 rho_ss = qload('steady_state')
-                bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
-                print(bistability,rho_bright)
+                print('MF init = ' + str(mf_init))
+                if mf_init:
+                    print('mf_init is true')
+                    mf_amplitudes = mf_calc(packaged_params)
+                    if mf_amplitudes.dropna().shape[0] == 4:
+                        bistability = True
+
+                        bright_alpha = mf_amplitudes.a_bright
+                        bright_projector = tensor(coherent_dm(packaged_params.c_levels, g*bright_alpha), qeye(packaged_params.t_levels))
+                        rho_bright = bright_projector * rho_ss
+                        rho_bright /= rho_bright.norm()
+
+                        dim_alpha = mf_amplitudes.a_dim
+                        dim_projector = tensor(coherent_dm(packaged_params.c_levels, g*dim_alpha), qeye(packaged_params.t_levels))
+                        rho_dim = dim_projector * rho_ss
+                        rho_dim /= rho_dim.norm()
+
+                        characteristics = None
+
+                    else:
+                        bistability = False
+                        rho_dim = None
+                        rho_bright = None
+                        characteristics = None
+                else:
+                    #raise AssertionError
+                    bistability, rho_dim, rho_bright, characteristics = bistable_states_calc(rho_ss)
                 if sys_params.qubit_state == 0:
                     print('Dim initial state.')
                     initial_state = rho_dim
@@ -149,8 +183,7 @@ def slowdown_sim(job_index, output_directory='./results', bistable_initial=True,
 
     qsave(H,'slowdown_hamiltonian')
 
-    if bistability or not bistable_initial:
-        print('hermitian',H.isherm)
+    if bistability:
         print('Going into the mesolve function we have a_op_re = ' + str(expect(e_ops['a_op_re'],initial_state)))
         output = mesolve_checkpoint(H, initial_state, snapshot_times, c_ops, e_ops, save, directory, options=options)
 
