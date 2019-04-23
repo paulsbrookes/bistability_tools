@@ -14,7 +14,7 @@ def dykman_calc_single(params, show_steps=False):
     if 'kappa_ph' not in params.keys():
         kappa_ph = 0.0
     else:
-        kappa_ph = params['kappah_ph'] / 2
+        kappa_ph = params['kappa_ph'] / 2
 
     A = 2 * epsilon * np.sqrt(2 * omega_0)
 

@@ -76,13 +76,11 @@ def fixed_point_tracker(fd_array, params, c_matrices, alpha0=0, beta0=0, fill_va
     return amplitude_frame
 
 
-def mf_characterise(base_params, fd_array, c_matrices=None, duffing=False):
+def mf_characterise(base_params, fd_array, alpha0_bright=0, beta0_bright=0, alpha0_dim=0, beta0_dim=0, c_matrices=None, duffing=False):
     if c_matrices is None:
         c_matrices = c_matrices_gen(base_params, duffing=duffing)
-    alpha0 = 0
-    mf_amplitude_frame_bright = fixed_point_tracker(np.flip(fd_array, axis=0), base_params, c_matrices, alpha0=alpha0)
-    mf_amplitude_frame_dim = fixed_point_tracker(fd_array, base_params, c_matrices, alpha0=alpha0,
-                                                 columns=['a_dim', 'b_dim'])
+    mf_amplitude_frame_bright = fixed_point_tracker(np.flip(fd_array, axis=0), base_params, c_matrices, alpha0=alpha0_bright, beta0=beta0_bright)
+    mf_amplitude_frame_dim = fixed_point_tracker(fd_array, base_params, c_matrices, alpha0=alpha0_dim, beta0=beta0_dim, columns=['a_dim', 'b_dim'])
     mf_amplitude_frame_bright.columns = ['a_bright', 'b_bright']
     mf_amplitude_frame = pd.concat([mf_amplitude_frame_bright, mf_amplitude_frame_dim], axis=1)
 
@@ -101,7 +99,6 @@ def mf_characterise(base_params, fd_array, c_matrices=None, duffing=False):
         mf_amplitude_frame['b_dim'].iloc[end_idx + 1:] = None
 
     return mf_amplitude_frame
-
 
 
 
@@ -221,7 +218,7 @@ def extend_upper(mf_amplitude_frame, params):
     return combined
 
 
-def check_upper(mf_amplitude_frame, params):
+def check_upper(mf_amplitude_frame, params, c_matrices):
     indices = mf_amplitude_frame.index
     fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
     fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
@@ -229,7 +226,7 @@ def check_upper(mf_amplitude_frame, params):
     alpha0_dim = mf_amplitude_frame['a_dim'].iloc[fd_upper2_idx - 1]
     beta0_dim = mf_amplitude_frame['b_dim'].iloc[fd_upper2_idx - 1]
     fd_array = np.array([fd_upper2])
-    mf_amplitude_frame_dim = fixed_point_tracker(np.flip(fd_array, axis=0), params, alpha0=alpha0_dim, beta0=beta0_dim)
+    mf_amplitude_frame_dim = fixed_point_tracker(np.flip(fd_array, axis=0), params, c_matrices, alpha0=alpha0_dim, beta0=beta0_dim)
     if mf_amplitude_frame_dim.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_dim.iloc[0].values, mf_amplitude_frame.iloc[fd_upper2_idx][['a_bright', 'b_bright']].values)):
         mf_amplitude_frame.loc[fd_upper2][['a_dim', 'b_dim']] = mf_amplitude_frame_dim.values[0, :]
         success = True
@@ -238,7 +235,7 @@ def check_upper(mf_amplitude_frame, params):
     return mf_amplitude_frame, success
 
 
-def check_lower(mf_amplitude_frame, params):
+def check_lower(mf_amplitude_frame, params, c_matrices):
     indices = mf_amplitude_frame.index
     fd_lower2 = mf_amplitude_frame['a_bright'].dropna().index[0]
     fd_lower1_idx = np.argwhere(indices == fd_lower2)[0, 0] - 1
@@ -247,7 +244,7 @@ def check_lower(mf_amplitude_frame, params):
     beta0_bright = mf_amplitude_frame['b_bright'].iloc[fd_lower1_idx + 1]
     fd_array = np.array([fd_lower1])
     print(fd_array, alpha0_bright, beta0_bright)
-    mf_amplitude_frame_bright = fixed_point_tracker(np.flip(fd_array, axis=0), params, alpha0=alpha0_bright,
+    mf_amplitude_frame_bright = fixed_point_tracker(np.flip(fd_array, axis=0), params, c_matrices, alpha0=alpha0_bright,
                                                     beta0=beta0_bright)
     if mf_amplitude_frame_bright.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_bright.iloc[0].values, mf_amplitude_frame.iloc[fd_lower1_idx][['a_dim', 'b_dim']].values)):
         mf_amplitude_frame.loc[fd_lower1][['a_bright', 'b_bright']] = mf_amplitude_frame_bright.values[0, :]
@@ -258,10 +255,10 @@ def check_lower(mf_amplitude_frame, params):
 
 
 
-
-
 def map_mf(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.49, 17)):
-    mf_amplitude_frame = mf_characterise(params, fd_array)
+    print(threshold,'threshold')
+    c_matrices = c_matrices_gen(params)
+    mf_amplitude_frame = mf_characterise(params, fd_array, c_matrices=c_matrices)
 
     if mf_amplitude_frame['a_dim'].dropna().shape[0] == 0:
         return None
@@ -271,29 +268,32 @@ def map_mf(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.4
 
     check_success = True
     while check_success:
-        mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params)
+        mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params, c_matrices)
 
     indices = mf_amplitude_frame.index
     fd_lower2 = mf_amplitude_frame['a_bright'].dropna().index[0]
     fd_lower1_idx = np.argwhere(indices == fd_lower2)[0, 0] - 1
     fd_lower1 = indices[fd_lower1_idx]
     df_lower = fd_lower2 - fd_lower1
+    print('df_lower',df_lower)
+    print('threshold',threshold)
     while df_lower > threshold:
-        print(df_lower, 'Extending lower')
+        print(df_lower, 'Extending lower.')
         mf_amplitude_frame = extend_lower(mf_amplitude_frame, params)
         if check:
             check_success = True
             while check_success:
-                mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params)
+                mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params, c_matrices)
         indices = mf_amplitude_frame.index
         fd_lower2 = mf_amplitude_frame['a_bright'].dropna().index[0]
         fd_lower1_idx = np.argwhere(indices == fd_lower2)[0, 0] - 1
         fd_lower1 = indices[fd_lower1_idx]
         df_lower = fd_lower2 - fd_lower1
 
+
     check_success = True
     while check_success:
-        mf_amplitude_frame, check_success = check_upper(mf_amplitude_frame, params)
+        mf_amplitude_frame, check_success = check_upper(mf_amplitude_frame, params, c_matrices)
 
     indices = mf_amplitude_frame.index
     fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
@@ -306,7 +306,7 @@ def map_mf(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.4
         if check:
             check_success = True
             while check_success:
-                mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params)
+                mf_amplitude_frame, check_success = check_lower(mf_amplitude_frame, params, c_matrices)
         indices = mf_amplitude_frame.index
         fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
         fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
