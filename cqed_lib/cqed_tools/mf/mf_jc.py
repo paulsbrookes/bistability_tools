@@ -102,8 +102,11 @@ def mf_characterise_jc(base_params, fd_array, alpha0_bright=0, sm0_bright=0, sz0
 
 
 def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.49, 17)):
-    print(threshold,'threshold')
+    print('mapping')
     mf_amplitude_frame = mf_characterise_jc(params, fd_array)
+
+    if 'a_dim' not in mf_amplitude_frame.columns:
+        return mf_amplitude_frame
 
     if mf_amplitude_frame['a_dim'].dropna().shape[0] == 0:
         return None
@@ -121,7 +124,6 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
     fd_lower1 = indices[fd_lower1_idx]
     df_lower = fd_lower2 - fd_lower1
     while df_lower > threshold:
-        print(df_lower, 'Extending lower.')
         mf_amplitude_frame = extend_lower_jc(mf_amplitude_frame, params)
         if check:
             check_success = True
@@ -133,7 +135,6 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
         fd_lower1 = indices[fd_lower1_idx]
         df_lower = fd_lower2 - fd_lower1
 
-
     check_success = True
     while check_success:
         mf_amplitude_frame, check_success = check_upper_jc(mf_amplitude_frame, params)
@@ -144,7 +145,6 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
     fd_upper2 = indices[fd_upper2_idx]
     df_upper = fd_upper2 - fd_upper1
     while df_upper > threshold:
-        print(df_upper, 'Extending upper')
         mf_amplitude_frame = extend_upper_jc(mf_amplitude_frame, params)
         if check:
             check_success = True
