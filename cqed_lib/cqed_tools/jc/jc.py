@@ -1,6 +1,7 @@
 from qutip import *
 from ..mf import *
 import pandas as pd
+from scipy.interpolate import interp1d
 
 
 def ham_gen_jc(params, alpha=0):
@@ -62,17 +63,17 @@ class Spectrum:
         self.mf_amplitude = self.mf_amplitude.sort_index()
         self.mf_amplitude = self.mf_amplitude[~self.mf_amplitude.index.duplicated(keep='first')]
 
-    def generate_hilbert_params(self, c_levels_bi_scale=1.0, scale=0.5, fd_lower=None, fd_upper=None, max_shift=True,
-                                c_levels_mono=10):
+    def generate_hilbert_params(self, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None, max_shift=True,
+                                c_levels_mono=10, kind='linear'):
         print('generating')
         self.hilbert_params = generate_hilbert_params(self.mf_amplitude, c_levels_bi_scale=c_levels_bi_scale,
-                                                      scale=scale, fd_lower=fd_lower, fd_upper=fd_upper,
+                                                      scale=scale, fd_limits=fd_limits, kind=kind,
                                                       max_shift=max_shift, c_levels_mono=c_levels_mono)
 
-    def me_calculate(self, solver_kwargs={}, c_levels_bi_scale=1.0, scale=0.5, fd_lower=None, fd_upper=None,
-                     max_shift=True, c_levels_mono=10):
+    def me_calculate(self, solver_kwargs={}, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None,
+                     max_shift=True, c_levels_mono=10, kind='linear'):
         self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale, max_shift=max_shift,
-                                     c_levels_mono=c_levels_mono)
+                                     c_levels_mono=c_levels_mono, fd_limits=fd_limits, kind=kind)
         # self.hilbert_params = generate_hilbert_params(self.mf_amplitude, c_levels_bi_scale=c_levels_bi_scale, scale=scale, fd_lower=fd_lower, fd_upper=fd_upper, max_shift=max_shift)
         # self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale)
 
@@ -145,21 +146,19 @@ class Spectrum:
         self.transmission_exp = self.transmission_exp.set_index(0)
 
 
-def generate_hilbert_params(mf_amplitude, fd_lower=None, fd_upper=None, scale=0.5, c_levels_mono=10,
-                            c_levels_bi_scale=1.0, max_shift=True):
+def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mono=10,
+                            c_levels_bi_scale=1.0, max_shift=True, kind='linear'):
     if 'a_dim' not in mf_amplitude.columns:
 
         hilbert_params = deepcopy(mf_amplitude)
         hilbert_params.columns = ['alpha_0']
-        hilbert_params['c_levels'] = params.c_levels
+        hilbert_params['c_levels'] = c_levels_mono
 
     else:
 
-        mf_amplitude_bistable = mf_amplitude.dropna().loc[fd_lower:fd_upper]
+        mf_amplitude_bistable = mf_amplitude.dropna()
+        bistable_frequencies = mf_amplitude_bistable.index
 
-        alpha_0_monostable_bright = mf_amplitude['a_bright'].dropna().drop(labels=mf_amplitude_bistable.index).loc[
-                                    fd_upper:]
-        alpha_0_monostable_dim = mf_amplitude['a_dim'].dropna().drop(labels=mf_amplitude_bistable.index).loc[:fd_lower]
         alpha_diff_bistable = mf_amplitude_bistable['a_bright'] - mf_amplitude_bistable['a_dim']
         alpha_diff_bistable_min = np.min(np.abs(alpha_diff_bistable))
         alpha_dim_bistable = mf_amplitude_bistable['a_dim']
@@ -168,6 +167,27 @@ def generate_hilbert_params(mf_amplitude, fd_lower=None, fd_upper=None, scale=0.
             alpha_0_bistable = alpha_dim_bistable + scale * alpha_diff_bistable_min * alpha_diff_bistable_unit
         else:
             alpha_0_bistable = alpha_dim_bistable + scale * alpha_diff_bistable
+
+        if fd_limits is not None:
+            bistable_frequencies = mf_amplitude[fd_limits[0]:fd_limits[1]].index
+            alpha_0_bistable_re_func = interp1d(alpha_0_bistable.index, alpha_0_bistable.values.real,
+                                                fill_value='extrapolate', kind=kind)
+            alpha_0_bistable_im_func = interp1d(alpha_0_bistable.index, alpha_0_bistable.values.imag,
+                                                fill_value='extrapolate', kind=kind)
+
+            def alpha_0_bistable_func_single(fd):
+                return alpha_0_bistable_re_func(fd) + 1j * alpha_0_bistable_im_func(fd)
+
+            alpha_0_bistable_func = np.vectorize(alpha_0_bistable_func_single)
+            alpha_0_bistable = alpha_0_bistable_func(bistable_frequencies)
+            alpha_0_bistable = pd.Series(alpha_0_bistable, index=bistable_frequencies)
+
+        fd_upper = bistable_frequencies[-1]
+        fd_lower = bistable_frequencies[0]
+        alpha_0_monostable_bright = mf_amplitude['a_bright'].dropna().loc[fd_upper:]
+        alpha_0_monostable_bright = alpha_0_monostable_bright.iloc[1:]
+        alpha_0_monostable_dim = mf_amplitude['a_dim'].dropna().loc[:fd_lower]
+        alpha_0_monostable_dim = alpha_0_monostable_dim.iloc[:-1]
 
         hilbert_params_mono = pd.concat(
             [alpha_0_monostable_bright.to_frame('alpha_0'), alpha_0_monostable_dim.to_frame('alpha_0')])
