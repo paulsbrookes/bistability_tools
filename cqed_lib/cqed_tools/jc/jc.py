@@ -17,13 +17,15 @@ def ham_gen_jc(params, alpha=0):
 
 def c_ops_gen_jc(params, alpha=0):
     c_ops = []
+    sm = tensor(sigmam(), qeye(params.c_levels))
+    a = tensor(qeye(2), destroy(params.c_levels)) + alpha
     if params.gamma > 0.0:
-        sm = tensor(sigmam(), qeye(params.c_levels))
         c_ops.append(np.sqrt(2*np.pi*params.gamma)*sm)
         if params.n_t > 0:
             c_ops.append(np.sqrt(2*np.pi*params.gamma*(1+params.n_t))*sm.dag())
+    if params.gamma_phi > 0.0:
+        c_ops.append(np.sqrt(2*np.pi*params.gamma_phi)*sm.dag()*sm)
     if params.kappa > 0.0:
-        a = tensor(qeye(2), destroy(params.c_levels)) + alpha
         c_ops.append(np.sqrt(2*np.pi*params.kappa)*a)
         if params.n_c > 0:
             c_ops.append(np.sqrt(2*np.pi*params.gamma*(1+params.n_c))*a.dag())
