@@ -2,6 +2,7 @@ from qutip import *
 from ..mf import *
 import pandas as pd
 from scipy.interpolate import interp1d
+from copy import deepcopy
 
 
 def ham_gen_jc(params, alpha=0):
@@ -41,9 +42,9 @@ class Spectrum:
         self.me_amplitude = None
         self.transmission_exp = None
 
-    def mf_calculate(self, fd_array):
+    def mf_calculate(self, fd_array, characterise_only=False):
         if self.mf_amplitude is None:
-            self.mf_amplitude = map_mf_jc(self.parameters, fd_array=fd_array)
+            self.mf_amplitude = map_mf_jc(self.parameters, fd_array=fd_array, characterise_only=characterise_only)
         else:
             fd0 = fd_array[0]
             fd1 = fd_array[-1]
@@ -200,3 +201,53 @@ def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mo
         hilbert_params = hilbert_params.sort_index()
 
     return hilbert_params
+
+
+class HysteresisSweep:
+    def __init__(self, params, fd_array, t_end):
+        self.params = params
+        self.fd_array = fd_array
+        self.sweeps = None
+        self.t_end = t_end
+
+    def gen_sweep(self):
+        sm = tensor(sigmam(), qeye(self.params.c_levels))
+        a = tensor(qeye(2), destroy(self.params.c_levels))
+        e_ops = [a.dag() * a, sm.dag() * sm, a, sm]
+        options = Options(store_states=True)
+        times = np.linspace(0, self.t_end, 1001)
+        collected_results_frame = None
+        initial_state = tensor(basis(2, 0), basis(self.params.c_levels, 0))
+        params = deepcopy(self.params)
+        for fd in self.fd_array:
+            params.fd = fd
+            ham = ham_gen_jc(params)
+            c_ops = c_ops_gen_jc(params)
+            result = mcsolve(ham, initial_state, times, c_ops, e_ops, ntraj=1, options=options)
+            result_frame = pd.DataFrame(np.array(result.expect).T, columns=['n_c', 'n_t', 'a', 'b'])
+            result_frame['fd'] = params.fd
+            result_frame['t'] = times
+            result_frame.set_index(['fd', 't'], inplace=True)
+            dtype_dict = dict()
+            dtype_dict['a'] = 'complex'
+            dtype_dict['b'] = 'complex'
+            dtype_dict['n_c'] = 'float'
+            dtype_dict['n_t'] = 'float'
+            result_frame = result_frame.astype(dtype_dict)
+            if collected_results_frame is None:
+                collected_results_frame = result_frame
+            else:
+                collected_results_frame = pd.concat([collected_results_frame, result_frame])
+            initial_state = result.states[0, -1]
+        if self.sweeps is None:
+            sweep_idx = 0
+            collected_results_frame['sweep'] = sweep_idx
+            collected_results_frame.set_index('sweep', append=True, inplace=True)
+            collected_results_frame = collected_results_frame.reorder_levels(['sweep', 'fd', 't'])
+            self.sweeps = collected_results_frame
+        else:
+            sweep_idx = self.sweeps.index.levels[0][-1] + 1
+            collected_results_frame['sweep'] = sweep_idx
+            collected_results_frame.set_index('sweep', append=True, inplace=True)
+            collected_results_frame = collected_results_frame.reorder_levels(['sweep', 'fd', 't'])
+            self.sweeps = pd.concat([collected_results_frame, self.sweeps])

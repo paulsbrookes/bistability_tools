@@ -13,7 +13,7 @@ def dalpha_calc_mf_jc(alpha, sm, sz, params):
 
 
 def dsm_calc_mf_jc(alpha, sm, sz, params):
-    dsm = -(0.5*params.gamma + 1j*(params.f01-params.fd))*sm + 1j*params.g*alpha*sz
+    dsm = -(0.5*(params.gamma + params.gamma_phi*sm) + 1j*(params.f01-params.fd))*sm + 1j*params.g*alpha*sz
     return dsm
 
 
@@ -101,9 +101,12 @@ def mf_characterise_jc(base_params, fd_array, alpha0_bright=0, sm0_bright=0, sz0
     return mf_amplitude_frame
 
 
-def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.49, 17)):
+def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.49, 17), characterise_only=False):
     print('mapping')
     mf_amplitude_frame = mf_characterise_jc(params, fd_array)
+
+    if characterise_only:
+        return mf_amplitude_frame
 
     if 'a_dim' not in mf_amplitude_frame.columns:
         return mf_amplitude_frame
@@ -135,6 +138,7 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
         fd_lower1 = indices[fd_lower1_idx]
         df_lower = fd_lower2 - fd_lower1
 
+    return mf_amplitude_frame
     check_success = True
     while check_success:
         mf_amplitude_frame, check_success = check_upper_jc(mf_amplitude_frame, params)
