@@ -59,7 +59,7 @@ class Spectrum:
             sz0_bright = self.mf_amplitude['sz_bright'].iloc[idx1]
             mf_amplitude_new = mf_characterise_jc(self.parameters, fd_array, alpha0_bright=alpha0_bright,
                                                   sm0_bright=sm0_bright, sz0_bright=sz0_bright, alpha0_dim=alpha0_dim,
-                                                  sm0_dim=sm0_dim, sz0_dim=sz0_dim)
+                                                  sm0_dim=sm0_dim, sz0_dim=sz0_dim, check_bistability=False)
             self.mf_amplitude = pd.concat([self.mf_amplitude, mf_amplitude_new])
 
         self.mf_amplitude = self.mf_amplitude.sort_index()

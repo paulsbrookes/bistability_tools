@@ -75,18 +75,33 @@ def fixed_point_tracker_jc(fd_array, params, alpha0=0, sm0=0, sz0=0, fill_value=
     return amplitude_frame
 
 
-def mf_characterise_jc(base_params, fd_array, alpha0_bright=0, sm0_bright=0, sz0_bright=0, alpha0_dim=0, sm0_dim=0, sz0_dim=0):
-    mf_amplitude_frame_bright = fixed_point_tracker_jc(np.flip(fd_array, axis=0), base_params, alpha0=alpha0_bright, sm0=sm0_bright, sz0=sz0_bright)
+def mf_characterise_jc(base_params, fd_array, alpha0_bright=0, sm0_bright=0, sz0_bright=0, alpha0_dim=0, sm0_dim=0,
+                       sz0_dim=0, check_bistability=True):
+    mf_amplitude_frame_bright = fixed_point_tracker_jc(np.flip(fd_array, axis=0), base_params, alpha0=alpha0_bright,
+                                                       sm0=sm0_bright, sz0=sz0_bright)
     mf_amplitude_frame_dim = fixed_point_tracker_jc(fd_array, base_params, alpha0=alpha0_dim, sm0=sm0_dim, sz0=sz0_dim,
-                                                 columns=['a_dim', 'sm_dim', 'sz_dim'])
+                                                    columns=['a_dim', 'sm_dim', 'sz_dim'])
     mf_amplitude_frame_bright.columns = ['a_bright', 'sm_bright', 'sz_bright']
     mf_amplitude_frame = pd.concat([mf_amplitude_frame_bright, mf_amplitude_frame_dim], axis=1)
+    mf_amplitude_frame.dropna(how='all', inplace=True)
 
     overlap_find = ~np.isclose(mf_amplitude_frame['a_bright'].values, mf_amplitude_frame['a_dim'].values)
+    test = ~(
+        ~overlap_find + ~np.isnan(mf_amplitude_frame['a_bright'].values) + ~np.isnan(
+            mf_amplitude_frame['a_dim'].values))
 
-    if not np.any(overlap_find):
-        mf_amplitude_frame = pd.DataFrame(mf_amplitude_frame.values[:, 0], index=mf_amplitude_frame.index,
-                                          columns=['a'])
+    if check_bistability:
+        non_nan_overlap = np.isclose(mf_amplitude_frame.dropna()['a_bright'].values,
+                                     mf_amplitude_frame.dropna()['a_dim'].values)
+        if (~np.all(non_nan_overlap) or non_nan_overlap.shape[0] == 0) and \
+                        mf_amplitude_frame['a_bright'].dropna().shape[
+                            0] > 0 and mf_amplitude_frame['a_dim'].dropna().shape[0] > 0:
+            bistable = True
+        else:
+            bistable = False
+            mf_amplitude_frame = pd.DataFrame(mf_amplitude_frame.values[:, 0], index=mf_amplitude_frame.index,
+                                              columns=['a'])
+            return mf_amplitude_frame
     else:
         start_idx = np.where(overlap_find)[0][0]
         end_idx = np.where(overlap_find)[0][-1]
@@ -99,6 +114,90 @@ def mf_characterise_jc(base_params, fd_array, alpha0_bright=0, sm0_bright=0, sz0
         mf_amplitude_frame['sz_dim'].iloc[end_idx + 1:] = None
 
     return mf_amplitude_frame
+
+
+def find_overlap_jc(mf_amplitude_frame, params):
+    alpha0_dim = mf_amplitude_frame['a_dim'].dropna().iloc[-1]
+    sm0_dim = mf_amplitude_frame['sm_dim'].dropna().iloc[-1]
+    smz_dim = mf_amplitude_frame['sz_dim'].dropna().iloc[-1]
+    fd_lower = mf_amplitude_frame['a_dim'].dropna().index[-1]
+    alpha0_bright = mf_amplitude_frame['a_bright'].dropna().iloc[0]
+    sm0_bright = mf_amplitude_frame['sm_bright'].dropna().iloc[0]
+    sz0_bright = mf_amplitude_frame['sz_bright'].dropna().iloc[0]
+    fd_upper = mf_amplitude_frame['a_bright'].dropna().index[0]
+    fd_array = np.linspace(fd_lower, fd_upper, 5)[1:-1]
+    new_mf_amplitude_frame = mf_characterise_jc(params, fd_array, alpha0_bright=alpha0_bright, sm0_bright=sm0_bright,
+                                                alpha0_dim=alpha0_dim, sm0_dim=sm0_dim)
+    combined = pd.concat([mf_amplitude_frame, new_mf_amplitude_frame])
+    combined.sort_index(inplace=True)
+    return combined
+
+
+def extend_upper_jc(mf_amplitude_frame, params):
+    indices = mf_amplitude_frame.index
+    fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
+    fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
+    fd_upper2 = indices[fd_upper2_idx]
+    fd_upper = 0.5 * (fd_upper1 + fd_upper2)
+    alpha0_dim = mf_amplitude_frame['a_dim'].dropna().iloc[-1]
+    sm0_dim = mf_amplitude_frame['sm_dim'].dropna().iloc[-1]
+    sz0_dim = mf_amplitude_frame['sz_dim'].dropna().iloc[-1]
+    alpha0_bright = 0.5 * (
+        mf_amplitude_frame['a_bright'].iloc[fd_upper2_idx] + mf_amplitude_frame['a_bright'].iloc[fd_upper2_idx - 1])
+    sm0_bright = 0.5 * (
+        mf_amplitude_frame['sm_bright'].iloc[fd_upper2_idx] + mf_amplitude_frame['sm_bright'].iloc[fd_upper2_idx - 1])
+    sz0_bright = 0.5 * (
+        mf_amplitude_frame['sz_bright'].iloc[fd_upper2_idx] + mf_amplitude_frame['sz_bright'].iloc[fd_upper2_idx - 1])
+    fd_array = np.array([fd_upper])
+    new_mf_amplitude_frame = mf_characterise_jc(params, fd_array, alpha0_bright=alpha0_bright, sm0_bright=sm0_bright,
+                                                sz0_bright=sz0_bright,
+                                                alpha0_dim=alpha0_dim, sm0_dim=sm0_dim, sz0_dim=sz0_dim,
+                                                check_bistability=False)
+    combined = pd.concat([mf_amplitude_frame, new_mf_amplitude_frame])
+    combined.sort_index(inplace=True)
+    return combined
+
+
+def check_upper_jc(mf_amplitude_frame, params):
+    indices = mf_amplitude_frame.index
+    fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
+    fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
+    fd_upper2 = indices[fd_upper2_idx]
+    alpha0_dim = mf_amplitude_frame['a_dim'].iloc[fd_upper2_idx - 1]
+    sm0_dim = mf_amplitude_frame['sm_dim'].iloc[fd_upper2_idx - 1]
+    sz0_dim = mf_amplitude_frame['sz_dim'].iloc[fd_upper2_idx - 1]
+    fd_array = np.array([fd_upper2])
+    mf_amplitude_frame_dim = fixed_point_tracker_jc(np.flip(fd_array, axis=0), params, alpha0=alpha0_dim, sm0=sm0_dim,
+                                                    sz0=sz0_dim)
+    if mf_amplitude_frame_dim.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_dim.iloc[0].values,
+                                                                          mf_amplitude_frame.iloc[fd_upper2_idx][
+                                                                              ['a_bright', 'b_bright']].values)):
+        mf_amplitude_frame.loc[fd_upper2][['a_dim', 'b_dim']] = mf_amplitude_frame_dim.values[0, :]
+        success = True
+    else:
+        success = False
+    return mf_amplitude_frame, success
+
+
+def check_lower_jc(mf_amplitude_frame, params):
+    indices = mf_amplitude_frame.index
+    fd_lower2 = mf_amplitude_frame['a_bright'].dropna().index[0]
+    fd_lower1_idx = np.argwhere(indices == fd_lower2)[0, 0] - 1
+    fd_lower1 = indices[fd_lower1_idx]
+    alpha0_bright = mf_amplitude_frame['a_bright'].iloc[fd_lower1_idx + 1]
+    sm0_bright = mf_amplitude_frame['sm_bright'].iloc[fd_lower1_idx + 1]
+    sz0_bright = mf_amplitude_frame['sz_bright'].iloc[fd_lower1_idx + 1]
+    fd_array = np.array([fd_lower1])
+    mf_amplitude_frame_bright = fixed_point_tracker_jc(np.flip(fd_array, axis=0), params, alpha0=alpha0_bright,
+                                                       sm0=sm0_bright, sz0=sz0_bright)
+    if mf_amplitude_frame_bright.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_bright.iloc[0].values,
+                                                                             mf_amplitude_frame.iloc[fd_lower1_idx][
+                                                                                 ['a_dim', 'b_dim']].values)):
+        mf_amplitude_frame.loc[fd_lower1][['a_bright', 'b_bright']] = mf_amplitude_frame_bright.values[0, :]
+        success = True
+    else:
+        success = False
+    return mf_amplitude_frame, success
 
 
 def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 10.49, 17), characterise_only=False):
@@ -128,6 +227,7 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
     df_lower = fd_lower2 - fd_lower1
     while df_lower > threshold:
         mf_amplitude_frame = extend_lower_jc(mf_amplitude_frame, params)
+        # return mf_amplitude_frame
         if check:
             check_success = True
             while check_success:
@@ -138,7 +238,7 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
         fd_lower1 = indices[fd_lower1_idx]
         df_lower = fd_lower2 - fd_lower1
 
-    return mf_amplitude_frame
+    # return mf_amplitude_frame
     check_success = True
     while check_success:
         mf_amplitude_frame, check_success = check_upper_jc(mf_amplitude_frame, params)
@@ -160,24 +260,9 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
         fd_upper2 = indices[fd_upper2_idx]
         df_upper = fd_upper2 - fd_upper1
 
+    print('hello')
+
     return mf_amplitude_frame
-
-
-def find_overlap_jc(mf_amplitude_frame, params):
-    alpha0_dim = mf_amplitude_frame['a_dim'].dropna().iloc[-1]
-    sm0_dim = mf_amplitude_frame['sm_dim'].dropna().iloc[-1]
-    smz_dim = mf_amplitude_frame['sz_dim'].dropna().iloc[-1]
-    fd_lower = mf_amplitude_frame['a_dim'].dropna().index[-1]
-    alpha0_bright = mf_amplitude_frame['a_bright'].dropna().iloc[0]
-    sm0_bright = mf_amplitude_frame['sm_bright'].dropna().iloc[0]
-    sz0_bright = mf_amplitude_frame['sz_bright'].dropna().iloc[0]
-    fd_upper = mf_amplitude_frame['a_bright'].dropna().index[0]
-    fd_array = np.linspace(fd_lower, fd_upper, 5)[1:-1]
-    new_mf_amplitude_frame = mf_characterise_jc(params, fd_array, alpha0_bright=alpha0_bright, sm0_bright=sm0_bright,
-                                             alpha0_dim=alpha0_dim, sm0_dim=sm0_dim)
-    combined = pd.concat([mf_amplitude_frame, new_mf_amplitude_frame])
-    combined.sort_index(inplace=True)
-    return combined
 
 
 def extend_lower_jc(mf_amplitude_frame, params):
@@ -189,72 +274,17 @@ def extend_lower_jc(mf_amplitude_frame, params):
     alpha0_bright = mf_amplitude_frame['a_bright'].dropna().iloc[0]
     sm0_bright = mf_amplitude_frame['sm_bright'].dropna().iloc[0]
     sz0_bright = mf_amplitude_frame['sz_bright'].dropna().iloc[0]
-    alpha0_dim = 0.5 * (mf_amplitude_frame['a_dim'].iloc[fd_lower1_idx] + mf_amplitude_frame['a_dim'].iloc[fd_lower1_idx + 1])
-    sm0_dim = 0.5 * (mf_amplitude_frame['sm_dim'].iloc[fd_lower1_idx] + mf_amplitude_frame['sm_dim'].iloc[fd_lower1_idx + 1])
-    sz0_dim = 0.5 * (mf_amplitude_frame['sz_dim'].iloc[fd_lower1_idx] + mf_amplitude_frame['sz_dim'].iloc[fd_lower1_idx + 1])
+    alpha0_dim = 0.5 * (
+    mf_amplitude_frame['a_dim'].iloc[fd_lower1_idx] + mf_amplitude_frame['a_dim'].iloc[fd_lower1_idx + 1])
+    sm0_dim = 0.5 * (
+    mf_amplitude_frame['sm_dim'].iloc[fd_lower1_idx] + mf_amplitude_frame['sm_dim'].iloc[fd_lower1_idx + 1])
+    sz0_dim = 0.5 * (
+    mf_amplitude_frame['sz_dim'].iloc[fd_lower1_idx] + mf_amplitude_frame['sz_dim'].iloc[fd_lower1_idx + 1])
     fd_array = np.array([fd_lower])
-    new_mf_amplitude_frame = mf_characterise_jc(params, fd_array, alpha0_bright=alpha0_bright, sm0_bright=sm0_bright, sz0_bright=sz0_bright,
-                                             alpha0_dim=alpha0_dim, sm0_dim=sm0_dim, sz0_dim=sz0_dim)
+    new_mf_amplitude_frame = mf_characterise_jc(params, fd_array, alpha0_bright=alpha0_bright, sm0_bright=sm0_bright,
+                                                sz0_bright=sz0_bright,
+                                                alpha0_dim=alpha0_dim, sm0_dim=sm0_dim, sz0_dim=sz0_dim,
+                                                check_bistability=False)
     combined = pd.concat([mf_amplitude_frame, new_mf_amplitude_frame])
     combined.sort_index(inplace=True)
     return combined
-
-
-def extend_upper_jc(mf_amplitude_frame, params):
-    indices = mf_amplitude_frame.index
-    fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
-    fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
-    fd_upper2 = indices[fd_upper2_idx]
-    fd_upper = 0.5 * (fd_upper1 + fd_upper2)
-    alpha0_dim = mf_amplitude_frame['a_dim'].dropna().iloc[-1]
-    sm0_dim = mf_amplitude_frame['sm_dim'].dropna().iloc[-1]
-    sz0_dim = mf_amplitude_frame['sz_dim'].dropna().iloc[-1]
-    alpha0_bright = 0.5 * (
-    mf_amplitude_frame['a_bright'].iloc[fd_upper2_idx] + mf_amplitude_frame['a_bright'].iloc[fd_upper2_idx - 1])
-    sm0_bright = 0.5 * (
-    mf_amplitude_frame['sm_bright'].iloc[fd_upper2_idx] + mf_amplitude_frame['sm_bright'].iloc[fd_upper2_idx - 1])
-    sz0_bright = 0.5 * (
-    mf_amplitude_frame['sz_bright'].iloc[fd_upper2_idx] + mf_amplitude_frame['sz_bright'].iloc[fd_upper2_idx - 1])
-    fd_array = np.array([fd_upper])
-    new_mf_amplitude_frame = mf_characterise_jc(params, fd_array, alpha0_bright=alpha0_bright, sm0_bright=sm0_bright, sz0_bright=sz0_bright,
-                                             alpha0_dim=alpha0_dim, sm0_dim=sm0_dim, sz0_dim=sz0_dim)
-    combined = pd.concat([mf_amplitude_frame, new_mf_amplitude_frame])
-    combined.sort_index(inplace=True)
-    return combined
-
-
-def check_upper_jc(mf_amplitude_frame, params):
-    indices = mf_amplitude_frame.index
-    fd_upper1 = mf_amplitude_frame['a_dim'].dropna().index[-1]
-    fd_upper2_idx = np.argwhere(indices == fd_upper1)[0, 0] + 1
-    fd_upper2 = indices[fd_upper2_idx]
-    alpha0_dim = mf_amplitude_frame['a_dim'].iloc[fd_upper2_idx - 1]
-    sm0_dim = mf_amplitude_frame['sm_dim'].iloc[fd_upper2_idx - 1]
-    sz0_dim = mf_amplitude_frame['sz_dim'].iloc[fd_upper2_idx - 1]
-    fd_array = np.array([fd_upper2])
-    mf_amplitude_frame_dim = fixed_point_tracker_jc(np.flip(fd_array, axis=0), params, alpha0=alpha0_dim, sm0=sm0_dim, sz0=sz0_dim)
-    if mf_amplitude_frame_dim.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_dim.iloc[0].values, mf_amplitude_frame.iloc[fd_upper2_idx][['a_bright', 'b_bright']].values)):
-        mf_amplitude_frame.loc[fd_upper2][['a_dim', 'b_dim']] = mf_amplitude_frame_dim.values[0, :]
-        success = True
-    else:
-        success = False
-    return mf_amplitude_frame, success
-
-
-def check_lower_jc(mf_amplitude_frame, params):
-    indices = mf_amplitude_frame.index
-    fd_lower2 = mf_amplitude_frame['a_bright'].dropna().index[0]
-    fd_lower1_idx = np.argwhere(indices == fd_lower2)[0, 0] - 1
-    fd_lower1 = indices[fd_lower1_idx]
-    alpha0_bright = mf_amplitude_frame['a_bright'].iloc[fd_lower1_idx + 1]
-    sm0_bright = mf_amplitude_frame['sm_bright'].iloc[fd_lower1_idx + 1]
-    sz0_bright = mf_amplitude_frame['sz_bright'].iloc[fd_lower1_idx + 1]
-    fd_array = np.array([fd_lower1])
-    mf_amplitude_frame_bright = fixed_point_tracker_jc(np.flip(fd_array, axis=0), params, alpha0=alpha0_bright,
-                                                    sm0=sm0_bright, sz0=sz0_bright)
-    if mf_amplitude_frame_bright.dropna().shape[0] and not np.all(np.isclose(mf_amplitude_frame_bright.iloc[0].values, mf_amplitude_frame.iloc[fd_lower1_idx][['a_dim', 'b_dim']].values)):
-        mf_amplitude_frame.loc[fd_lower1][['a_bright', 'b_bright']] = mf_amplitude_frame_bright.values[0, :]
-        success = True
-    else:
-        success = False
-    return mf_amplitude_frame, success
