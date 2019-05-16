@@ -3,6 +3,7 @@ from ..mf import *
 import pandas as pd
 from scipy.interpolate import interp1d
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 
 def ham_gen_jc(params, alpha=0):
@@ -65,16 +66,16 @@ class Spectrum:
         self.mf_amplitude = self.mf_amplitude[~self.mf_amplitude.index.duplicated(keep='first')]
 
     def generate_hilbert_params(self, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None, max_shift=True,
-                                c_levels_mono=10, kind='linear'):
+                                c_levels_mono=10, kind='linear', method='extrapolate_alpha_0'):
         print('generating')
         self.hilbert_params = generate_hilbert_params(self.mf_amplitude, c_levels_bi_scale=c_levels_bi_scale,
                                                       scale=scale, fd_limits=fd_limits, kind=kind,
-                                                      max_shift=max_shift, c_levels_mono=c_levels_mono)
+                                                      max_shift=max_shift, c_levels_mono=c_levels_mono, method=method)
 
     def me_calculate(self, solver_kwargs={}, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None,
-                     max_shift=True, c_levels_mono=10, kind='linear'):
+                     max_shift=True, c_levels_mono=10, kind='linear', method='extrapolate_alpha_0'):
         self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale, max_shift=max_shift,
-                                     c_levels_mono=c_levels_mono, fd_limits=fd_limits, kind=kind)
+                                     c_levels_mono=c_levels_mono, fd_limits=fd_limits, kind=kind, method=method)
         # self.hilbert_params = generate_hilbert_params(self.mf_amplitude, c_levels_bi_scale=c_levels_bi_scale, scale=scale, fd_lower=fd_lower, fd_upper=fd_upper, max_shift=max_shift)
         # self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale)
 
@@ -99,7 +100,7 @@ class Spectrum:
 
         self.me_amplitude = pd.DataFrame(a_array, index=self.mf_amplitude.index)
 
-    def plot(self, axes=None, mf=True, me=True, db=True):
+    def plot(self, axes=None, mf=True, me=True, db=True, me_kwargs={'marker':'o'}, mf_kwargs={'marker':'o'}):
 
         if axes is None:
             fig, axes = plt.subplots(1, 1, figsize=(10, 6))
@@ -110,25 +111,25 @@ class Spectrum:
             if me:
                 if self.me_amplitude is not None:
                     axes.plot(self.me_amplitude.dropna().index, 20 * np.log10(np.abs(self.me_amplitude.dropna())),
-                              marker='o')
+                              **me_kwargs)
             if mf:
                 if self.mf_amplitude.shape[1] == 1:
-                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a'])), marker='o')
+                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a'])), **mf_kwargs)
                 else:
-                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_bright'])), marker='o')
-                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_dim'])), marker='o')
+                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_bright'])), **mf_kwargs)
+                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_dim'])), **mf_kwargs)
         else:
             if me:
                 if self.me_amplitude is not None:
-                    axes.plot(self.me_amplitude.dropna().index, np.abs(self.me_amplitude.dropna()), marker='o')
+                    axes.plot(self.me_amplitude.dropna().index, np.abs(self.me_amplitude.dropna()), **me_kwargs)
             if mf:
                 if self.mf_amplitude.shape[1] == 1:
-                    axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a']), marker='o')
+                    axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a']), **mf_kwargs)
                 else:
-                    axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a_bright']), marker='o')
-                    axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a_dim']), marker='o')
+                    axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a_bright']), **mf_kwargs)
+                    axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a_dim']), **mf_kwargs)
 
-    def plot_transmission(self, axes=None, scale=4.851024710399999e-09, exp=True, sim=True):
+    def plot_transmission(self, axes=None, scale=4.851024710399999e-09, exp=True, sim=True, me_kwargs={'marker':'o'}, mf_kwargs={'marker':'o'}):
 
         if axes is None:
             fig, axes = plt.subplots(1, 1, figsize=(10, 6))
@@ -137,7 +138,7 @@ class Spectrum:
 
         if sim and self.me_amplitude is not None:
             self.transmission = scale * np.abs(self.me_amplitude.dropna()) ** 2 / self.parameters.eps ** 2
-            axes.plot(self.transmission.index, 10 * np.log10(self.transmission), marker='o', label='Sim')
+            axes.plot(self.transmission.index, 10 * np.log10(self.transmission), label='Sim', **me_kwargs)
 
         if exp and self.transmission_exp is not None:
             axes.plot(self.transmission_exp.index, self.transmission_exp, label='Exp')
@@ -148,7 +149,7 @@ class Spectrum:
 
 
 def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mono=10,
-                            c_levels_bi_scale=1.0, max_shift=True, kind='linear'):
+                            c_levels_bi_scale=1.0, max_shift=True, kind='linear', method='extrapolate_alpha_0'):
     if 'a_dim' not in mf_amplitude.columns:
 
         hilbert_params = deepcopy(mf_amplitude)
@@ -163,28 +164,69 @@ def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mo
         alpha_diff_bistable = mf_amplitude_bistable['a_bright'] - mf_amplitude_bistable['a_dim']
         alpha_diff_bistable_min = np.min(np.abs(alpha_diff_bistable))
         alpha_dim_bistable = mf_amplitude_bistable['a_dim']
-        alpha_diff_bistable_unit = alpha_diff_bistable / np.abs(alpha_diff_bistable)
+
         if max_shift:
+            alpha_diff_bistable_unit = alpha_diff_bistable / np.abs(alpha_diff_bistable)
             alpha_0_bistable = alpha_dim_bistable + scale * alpha_diff_bistable_min * alpha_diff_bistable_unit
         else:
             alpha_0_bistable = alpha_dim_bistable + scale * alpha_diff_bistable
 
         if fd_limits is not None:
+
+            if method not in ['extrapolate_alpha_0', 'extrapolate_diff']:
+                raise Exception('Method not recognised.')
+
             bistable_frequencies = mf_amplitude[fd_limits[0]:fd_limits[1]].index
-            alpha_0_bistable_re_func = interp1d(alpha_0_bistable.index, alpha_0_bistable.values.real,
-                                                fill_value='extrapolate', kind=kind)
-            alpha_0_bistable_im_func = interp1d(alpha_0_bistable.index, alpha_0_bistable.values.imag,
-                                                fill_value='extrapolate', kind=kind)
 
-            def alpha_0_bistable_func_single(fd):
-                return alpha_0_bistable_re_func(fd) + 1j * alpha_0_bistable_im_func(fd)
+            if method is 'extrapolate_alpha_0':
 
-            alpha_0_bistable_func = np.vectorize(alpha_0_bistable_func_single)
-            alpha_0_bistable = alpha_0_bistable_func(bistable_frequencies)
-            alpha_0_bistable = pd.Series(alpha_0_bistable, index=bistable_frequencies)
+                alpha_0_bistable_re_func = interp1d(alpha_0_bistable.index, alpha_0_bistable.values.real,
+                                                    fill_value='extrapolate', kind=kind)
+                alpha_0_bistable_im_func = interp1d(alpha_0_bistable.index, alpha_0_bistable.values.imag,
+                                                    fill_value='extrapolate', kind=kind)
 
-        fd_upper = bistable_frequencies[-1]
-        fd_lower = bistable_frequencies[0]
+                def alpha_0_bistable_func_single(fd):
+                    return alpha_0_bistable_re_func(fd) + 1j * alpha_0_bistable_im_func(fd)
+
+                alpha_0_bistable_func = np.vectorize(alpha_0_bistable_func_single, otypes=[complex])
+                alpha_0_bistable = alpha_0_bistable_func(bistable_frequencies)
+                alpha_0_bistable = pd.Series(alpha_0_bistable, index=bistable_frequencies)
+
+            elif method is 'extrapolate_diff':
+
+                diff_re_func = interp1d(alpha_diff_bistable.index, alpha_diff_bistable.values.real,
+                                        fill_value='extrapolate', kind=kind)
+                diff_im_func = interp1d(alpha_diff_bistable.index, alpha_diff_bistable.values.imag,
+                                        fill_value='extrapolate', kind=kind)
+
+                def diff_func_single(fd):
+                    return diff_re_func(fd) + 1j * diff_im_func(fd)
+
+                diff_func = np.vectorize(diff_func_single, otypes=[complex])
+
+                upper_mf_bistable_fd = mf_amplitude.dropna().index[-1]
+
+                if fd_limits[1] < upper_mf_bistable_fd or fd_limits[0] > upper_mf_bistable_fd:
+                    raise Exception('Frequency range does not cover the upper bistability crossover.')
+
+                lower_midpoint_frequencies = mf_amplitude[fd_limits[0]:upper_mf_bistable_fd].index
+                diff_lower = diff_func(lower_midpoint_frequencies)
+                diff_lower_unit = diff_lower / np.abs(diff_lower)
+                alpha_dim_lower = mf_amplitude['a_dim'][lower_midpoint_frequencies]
+                alpha_0_lower = alpha_dim_lower + scale * alpha_diff_bistable_min * diff_lower_unit
+                alpha_0_lower = pd.Series(alpha_0_lower, index=lower_midpoint_frequencies)
+
+                upper_midpoint_frequencies = mf_amplitude[upper_mf_bistable_fd:fd_limits[1]].index[1:]
+                diff_upper = diff_func(upper_midpoint_frequencies)
+                diff_upper_unit = diff_upper / np.abs(diff_upper)
+                alpha_bright_upper = mf_amplitude['a_bright'][upper_midpoint_frequencies]
+                alpha_0_upper = alpha_bright_upper + (scale - 1) * alpha_diff_bistable_min * diff_upper_unit
+                alpha_0_upper = pd.Series(alpha_0_upper, index=upper_midpoint_frequencies)
+
+                alpha_0_bistable = pd.concat([alpha_0_lower, alpha_0_upper])
+
+        fd_lower = alpha_0_bistable.index[0]
+        fd_upper = alpha_0_bistable.index[-1]
         alpha_0_monostable_bright = mf_amplitude['a_bright'].dropna().loc[fd_upper:]
         alpha_0_monostable_bright = alpha_0_monostable_bright.iloc[1:]
         alpha_0_monostable_dim = mf_amplitude['a_dim'].dropna().loc[:fd_lower]
@@ -204,11 +246,14 @@ def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mo
 
 
 class HysteresisSweep:
-    def __init__(self, params, fd_array, t_end):
+    def __init__(self, params, fd_array, t_end, initial_direction='up'):
         self.params = params
         self.fd_array = fd_array
         self.sweeps = None
         self.t_end = t_end
+        self.previous_state = tensor(basis(2, 0), basis(self.params.c_levels, 0))
+        self.next_direction = initial_direction
+        self.next_sweep_idx = 0
 
     def gen_sweep(self):
         sm = tensor(sigmam(), qeye(self.params.c_levels))
@@ -217,17 +262,22 @@ class HysteresisSweep:
         options = Options(store_states=True)
         times = np.linspace(0, self.t_end, 1001)
         collected_results_frame = None
-        initial_state = tensor(basis(2, 0), basis(self.params.c_levels, 0))
         params = deepcopy(self.params)
-        for fd in self.fd_array:
+        if self.next_direction is 'up':
+            next_fd_array = self.fd_array
+        else:
+            next_fd_array = np.flip(self.fd_array)
+        for fd in next_fd_array:
             params.fd = fd
             ham = ham_gen_jc(params)
             c_ops = c_ops_gen_jc(params)
-            result = mcsolve(ham, initial_state, times, c_ops, e_ops, ntraj=1, options=options)
+            result = mcsolve(ham, self.previous_state, times, c_ops, e_ops, ntraj=1, options=options)
             result_frame = pd.DataFrame(np.array(result.expect).T, columns=['n_c', 'n_t', 'a', 'b'])
             result_frame['fd'] = params.fd
             result_frame['t'] = times
-            result_frame.set_index(['fd', 't'], inplace=True)
+            result_frame['direction'] = self.next_direction
+            result_frame['count'] = self.next_sweep_idx / 2
+            result_frame.set_index(['direction', 'count', 'fd', 't'], inplace=True)
             dtype_dict = dict()
             dtype_dict['a'] = 'complex'
             dtype_dict['b'] = 'complex'
@@ -238,16 +288,14 @@ class HysteresisSweep:
                 collected_results_frame = result_frame
             else:
                 collected_results_frame = pd.concat([collected_results_frame, result_frame])
-            initial_state = result.states[0, -1]
+            self.previous_state = result.states[0, -1]
         if self.sweeps is None:
-            sweep_idx = 0
-            collected_results_frame['sweep'] = sweep_idx
-            collected_results_frame.set_index('sweep', append=True, inplace=True)
-            collected_results_frame = collected_results_frame.reorder_levels(['sweep', 'fd', 't'])
             self.sweeps = collected_results_frame
         else:
-            sweep_idx = self.sweeps.index.levels[0][-1] + 1
-            collected_results_frame['sweep'] = sweep_idx
-            collected_results_frame.set_index('sweep', append=True, inplace=True)
-            collected_results_frame = collected_results_frame.reorder_levels(['sweep', 'fd', 't'])
             self.sweeps = pd.concat([collected_results_frame, self.sweeps])
+
+        if self.next_direction == 'up':
+            self.next_direction = 'down'
+        else:
+            self.next_direction = 'up'
+        self.next_sweep_idx += 1

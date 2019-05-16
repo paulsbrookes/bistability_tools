@@ -112,7 +112,7 @@ def map_mf_jc(params, threshold=5e-5, check=False, fd_array=np.linspace(10.45, 1
         return mf_amplitude_frame
 
     if mf_amplitude_frame['a_dim'].dropna().shape[0] == 0:
-        return None
+        return mf_amplitude_frame
 
     while mf_amplitude_frame.dropna().shape[0] == 0:
         mf_amplitude_frame = find_overlap_jc(mf_amplitude_frame, params)
