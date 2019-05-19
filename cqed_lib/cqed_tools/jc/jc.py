@@ -35,6 +35,28 @@ def c_ops_gen_jc(params, alpha=0):
     return c_ops
 
 
+def iterative_alpha_calc(params, n_cycles=10, initial_alpha=0):
+    alpha = initial_alpha
+
+    try:
+
+        for idx in range(n_cycles):
+            ham = ham_gen_jc(params, alpha=alpha)
+            c_ops = c_ops_gen_jc(params, alpha=alpha)
+            rho = steadystate(ham, c_ops)
+
+            a = tensor(qeye(2), destroy(params.c_levels)) + alpha
+
+            a_exp = expect(a, rho)
+
+            alpha = a_exp
+
+    except:
+        alpha = None
+
+    return alpha
+
+
 class Spectrum:
     def __init__(self, parameters):
         print('hello')
@@ -42,6 +64,134 @@ class Spectrum:
         self.mf_amplitude = None
         self.me_amplitude = None
         self.transmission_exp = None
+
+    def iterative_calculate(self, fd_array, initial_alpha=0, n_cycles=10, prune=True):
+
+        if self.parameters.fc < self.parameters.f01:
+            change = 'hard'
+        else:
+            change = 'soft'
+
+        params = deepcopy(self.parameters)
+
+        fd_array = np.sort(fd_array)
+        a_array = np.zeros(fd_array.shape[0], dtype=complex)
+        alpha = initial_alpha
+        for fd_idx, fd in tqdm(enumerate(fd_array)):
+            params.fd = fd
+            alpha = iterative_alpha_calc(params, initial_alpha=alpha, n_cycles=n_cycles)
+            a_array[fd_idx] = alpha
+
+        if change is 'hard':
+            alpha_bright_iterative = pd.Series(a_array, index=fd_array, name='alpha_bright')
+        else:
+            alpha_dim_iterative = pd.Series(a_array, index=fd_array, name='alpha_dim')
+
+        fd_array = np.flip(fd_array)
+        a_array = np.zeros(fd_array.shape[0], dtype=complex)
+        alpha = initial_alpha
+        for fd_idx, fd in tqdm(enumerate(fd_array)):
+            params.fd = fd
+            alpha = iterative_alpha_calc(params, initial_alpha=alpha, n_cycles=n_cycles)
+            a_array[fd_idx] = alpha
+
+        if change is 'hard':
+            alpha_dim_iterative = pd.Series(a_array, index=fd_array, name='alpha_dim')
+        else:
+            alpha_bright_iterative = pd.Series(a_array, index=fd_array)
+
+        if prune:
+            alpha_dim_iterative = alpha_dim_iterative.dropna()
+            alpha_dim_iterative.sort_index(inplace=True)
+            # alpha_dim_diff = np.diff(alpha_dim_iterative)/np.diff(alpha_dim_iterative.index)
+            # first_dim_idx = np.argmax(np.abs(alpha_dim_diff)) + 1
+            first_dim_idx = np.argmax(alpha_dim_iterative.real)
+            alpha_dim_iterative = alpha_dim_iterative.iloc[first_dim_idx:]
+
+            alpha_bright_iterative = alpha_bright_iterative.dropna()
+            alpha_bright_iterative.sort_index(inplace=True)
+            # alpha_bright_diff = np.diff(alpha_bright_iterative) / np.diff(alpha_bright_iterative.index)
+            # last_bright_idx = np.argmax(np.abs(alpha_bright_diff))
+            last_bright_idx = np.argmin(alpha_bright_iterative.imag)
+            alpha_bright_iterative = alpha_bright_iterative.iloc[:last_bright_idx + 1]
+
+        self.iterative_amplitude = pd.concat([alpha_dim_iterative, alpha_bright_iterative], axis=1)
+
+    def gen_iterative_hilbert_params(self, fd_limits, kind='linear', fill_value='extrapolate', fraction=0.5,
+                                     level_scaling=1.0, max_shift=False, max_levels=True):
+
+        alpha_dim = self.iterative_amplitude['alpha_dim'].dropna()
+        # alpha_dim.sort_index(inplace=True)
+        # alpha_dim_diff = np.diff(alpha_dim)/np.diff(alpha_dim.index)
+        # first_dim_idx = np.argmax(np.abs(alpha_dim_diff)) + 1
+        # alpha_dim = alpha_dim.iloc[first_dim_idx:]
+
+        alpha_bright = self.iterative_amplitude['alpha_bright'].dropna()
+        # alpha_bright.sort_index(inplace=True)
+        # alpha_bright_diff = np.diff(alpha_bright) / np.diff(alpha_bright.index)
+        # last_bright_idx = np.argmax(np.abs(alpha_bright_diff))
+        # alpha_bright = alpha_bright.iloc[:last_bright_idx]
+
+        new_iterative_alphas = pd.concat([alpha_dim, alpha_bright], axis=1)
+        self.iterative_amplitude = new_iterative_alphas
+
+        alpha_dim_real_func = interpolate.interp1d(alpha_dim.index, alpha_dim.real, kind=kind, fill_value=fill_value)
+        alpha_dim_imag_func = interpolate.interp1d(alpha_dim.index, alpha_dim.imag, kind=kind, fill_value=fill_value)
+
+        def alpha_dim_func_single(fd):
+            alpha_dim = alpha_dim_real_func(fd) + 1j * alpha_dim_imag_func(fd)
+            return alpha_dim
+
+        alpha_dim_func_vec = np.vectorize(alpha_dim_func_single)
+
+        def alpha_dim_func(fd_array):
+            alpha_dim_array = alpha_dim_func_vec(fd_array)
+            alpha_dim_series = pd.Series(alpha_dim_array, index=fd_array, name='alpha_dim_func')
+            return alpha_dim_series
+
+        alpha_bright_real_func = interpolate.interp1d(alpha_bright.index, alpha_bright.real, kind=kind,
+                                                      fill_value=fill_value)
+        alpha_bright_imag_func = interpolate.interp1d(alpha_bright.index, alpha_bright.imag, kind=kind,
+                                                      fill_value=fill_value)
+
+        def alpha_bright_func_single(fd):
+            alpha_bright = alpha_bright_real_func(fd) + 1j * alpha_bright_imag_func(fd)
+            return alpha_bright
+
+        alpha_bright_func_vec = np.vectorize(alpha_bright_func_single)
+
+        def alpha_bright_func(fd_array):
+            alpha_bright_array = alpha_bright_func_vec(fd_array)
+            alpha_bright_series = pd.Series(alpha_bright_array, index=fd_array, name='alpha_bright')
+            return alpha_bright_series
+
+        alpha_dim_interp = alpha_dim_func(fd_array)
+        alpha_bright_interp = alpha_bright_func(fd_array)
+        alpha_diff_interp = (alpha_bright_interp - alpha_dim_interp).dropna()
+        if max_shift:
+            min_diff = np.min(np.abs(alpha_diff_interp))
+            alpha_diff_unit_interp = alpha_diff_interp / np.abs(alpha_diff_interp)
+            alpha_0_interp = alpha_dim_interp + fraction * min_diff * alpha_diff_unit_interp
+        else:
+            alpha_0_interp = alpha_dim_interp + fraction * alpha_diff_interp
+        alpha_diff_interp.name = 'alpha_diff'
+        alpha_0_interp.name = 'alpha_0'
+        hilbert_params = pd.concat([alpha_diff_interp, alpha_0_interp], axis=1)
+
+        if max_levels:
+            min_diff = np.min(np.abs(alpha_diff_interp))
+            hilbert_params['c_levels'] = np.int(np.ceil(level_scaling * min_diff ** 2))
+        else:
+            hilbert_params['c_levels'] = np.ceil(level_scaling * np.abs(alpha_diff_interp.values) ** 2).astype(int)
+
+        hilbert_params['c_levels'].loc[:fd_limits[0]] = self.parameters.c_levels
+        hilbert_params['alpha_0'].loc[:fd_limits[0]] = self.iterative_amplitude['alpha_bright'].loc[:fd_limits[0]]
+        hilbert_params['c_levels'].loc[fd_limits[1]:] = self.parameters.c_levels
+        hilbert_params['alpha_0'].loc[fd_limits[1]:] = self.iterative_amplitude['alpha_dim'].loc[fd_limits[1]:]
+
+        # hilbert_params = pd.concat([hilbert_params, alpha_dim_interp, alpha_bright_interp], axis=1)
+
+        self.hilbert_params = hilbert_params
 
     def mf_calculate(self, fd_array, characterise_only=False):
         if self.mf_amplitude is None:
@@ -66,21 +216,35 @@ class Spectrum:
         self.mf_amplitude = self.mf_amplitude[~self.mf_amplitude.index.duplicated(keep='first')]
 
     def generate_hilbert_params(self, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None, max_shift=True,
-                                c_levels_mono=10, kind='linear', method='extrapolate_alpha_0'):
-        print('generating')
+                                c_levels_mono=10, c_levels_bi=10, alpha_0_mono=0, alpha_0_bi=0, kind='linear',
+                                method='extrapolate_alpha_0'):
+        print(c_levels_bi)
         self.hilbert_params = generate_hilbert_params(self.mf_amplitude, c_levels_bi_scale=c_levels_bi_scale,
                                                       scale=scale, fd_limits=fd_limits, kind=kind,
-                                                      max_shift=max_shift, c_levels_mono=c_levels_mono, method=method)
+                                                      max_shift=max_shift, c_levels_mono=c_levels_mono,
+                                                      c_levels_bi=c_levels_bi, alpha_0_mono=alpha_0_mono,
+                                                      alpha_0_bi=alpha_0_bi, method=method)
 
-    def me_calculate(self, solver_kwargs={}, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None,
-                     max_shift=True, c_levels_mono=10, kind='linear', method='extrapolate_alpha_0'):
-        self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale, max_shift=max_shift,
-                                     c_levels_mono=c_levels_mono, fd_limits=fd_limits, kind=kind, method=method)
+    def me_calculate(self, solver_kwargs={}, c_levels_bi_scale=1.0, scale=0.5, fd_limits=None, fill_value='extrapolate',
+                     max_shift=False, c_levels_mono=10, c_levels_bi=10, alpha_0_mono=0, alpha_0_bi=0, kind='linear',
+                     method='extrapolate_alpha_0', level_scaling=1.0, max_levels=True):
+
+        if method is 'iterative':
+            frequencies = self.iterative_amplitude.index
+            self.gen_iterative_hilbert_params(fd_limits, kind=kind, fill_value=fill_value, fraction=scale,
+                                              level_scaling=level_scaling, max_shift=max_shift, max_levels=max_levels)
+        else:
+            frequencies = self.mf_amplitude.index
+            self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale, max_shift=max_shift,
+                                         c_levels_mono=c_levels_mono, c_levels_bi=c_levels_bi,
+                                         alpha_0_mono=alpha_0_mono,
+                                         alpha_0_bi=alpha_0_bi, fd_limits=fd_limits, kind=kind, method=method)
         # self.hilbert_params = generate_hilbert_params(self.mf_amplitude, c_levels_bi_scale=c_levels_bi_scale, scale=scale, fd_lower=fd_lower, fd_upper=fd_upper, max_shift=max_shift)
         # self.generate_hilbert_params(c_levels_bi_scale=c_levels_bi_scale, scale=scale)
 
 
-        a_array = np.zeros(self.mf_amplitude.shape[0], dtype=complex)
+
+        a_array = np.zeros(frequencies.shape[0], dtype=complex)
 
         params = deepcopy(self.parameters)
         for fd_idx, fd, alpha0, c_levels in tqdm(
@@ -98,9 +262,9 @@ class Spectrum:
                 print('Failure at fd = ' + str(fd))
                 a_array[fd_idx] = np.nan
 
-        self.me_amplitude = pd.DataFrame(a_array, index=self.mf_amplitude.index)
+        self.me_amplitude = pd.DataFrame(a_array, index=frequencies)
 
-    def plot(self, axes=None, mf=True, me=True, db=True, me_kwargs={'marker':'o'}, mf_kwargs={'marker':'o'}):
+    def plot(self, axes=None, mf=True, me=True, db=True, me_kwargs={'marker': 'o'}, mf_kwargs={'marker': 'o'}):
 
         if axes is None:
             fig, axes = plt.subplots(1, 1, figsize=(10, 6))
@@ -116,7 +280,8 @@ class Spectrum:
                 if self.mf_amplitude.shape[1] == 1:
                     axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a'])), **mf_kwargs)
                 else:
-                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_bright'])), **mf_kwargs)
+                    axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_bright'])),
+                              **mf_kwargs)
                     axes.plot(self.mf_amplitude.index, 20 * np.log10(np.abs(self.mf_amplitude['a_dim'])), **mf_kwargs)
         else:
             if me:
@@ -129,7 +294,8 @@ class Spectrum:
                     axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a_bright']), **mf_kwargs)
                     axes.plot(self.mf_amplitude.index, np.abs(self.mf_amplitude['a_dim']), **mf_kwargs)
 
-    def plot_transmission(self, axes=None, scale=4.851024710399999e-09, exp=True, sim=True, me_kwargs={'marker':'o'}, mf_kwargs={'marker':'o'}):
+    def plot_transmission(self, axes=None, scale=4.851024710399999e-09, exp=True, sim=True, me_kwargs={'marker': 'o'},
+                          mf_kwargs={'marker': 'o'}):
 
         if axes is None:
             fig, axes = plt.subplots(1, 1, figsize=(10, 6))
@@ -148,13 +314,21 @@ class Spectrum:
         self.transmission_exp = self.transmission_exp.set_index(0)
 
 
-def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mono=10,
+def generate_hilbert_params(mf_amplitude, fd_limits=None, scale=0.5, c_levels_mono=10, c_levels_bi=10, alpha_0_mono=0, alpha_0_bi=0,
                             c_levels_bi_scale=1.0, max_shift=True, kind='linear', method='extrapolate_alpha_0'):
     if 'a_dim' not in mf_amplitude.columns:
 
         hilbert_params = deepcopy(mf_amplitude)
         hilbert_params.columns = ['alpha_0']
         hilbert_params['c_levels'] = c_levels_mono
+
+    elif method is 'static':
+        n_frequencies = mf_amplitude.shape[0]
+        hilbert_params = pd.DataFrame(alpha_0_mono*np.ones([n_frequencies,1],dtype=complex), columns=['alpha_0'], index=mf_amplitude.index)
+        hilbert_params['c_levels'] = c_levels_mono
+        if fd_limits is not None:
+            hilbert_params['c_levels'][fd_limits[0]:fd_limits[1]] = c_levels_bi
+            hilbert_params['alpha_0'][fd_limits[0]:fd_limits[1]] = alpha_0_bi
 
     else:
 

@@ -13,7 +13,7 @@ def dalpha_calc_mf_jc(alpha, sm, sz, params):
 
 
 def dsm_calc_mf_jc(alpha, sm, sz, params):
-    dsm = -(0.5*(params.gamma + params.gamma_phi*sm) + 1j*(params.f01-params.fd))*sm + 1j*params.g*alpha*sz
+    dsm = -(0.5*(params.gamma + params.gamma_phi) + 1j*(params.f01-params.fd))*sm + 1j*params.g*alpha*sz
     return dsm
 
 
