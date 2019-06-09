@@ -123,6 +123,12 @@ class Spectrum:
 
         self.iterative_amplitude = pd.concat([alpha_dim_iterative, alpha_bright_iterative], axis=1)
 
+
+    def gen_raw_hilbert_params(self, fd_array, c_levels):
+        self.hilbert_params = pd.DataFrame(np.zeros([fd_array.shape[0], 1]), index=fd_array, columns=['alpha_0'])
+        self.hilbert_params['c_levels'] = c_levels
+
+
     def gen_iterative_hilbert_params(self, fd_limits, kind='linear', fill_value='extrapolate', fraction=0.5,
                                      level_scaling=1.0, max_shift=False, max_levels=True, relative='dim', relative_crossover=None, c_levels_bistable=None):
 
