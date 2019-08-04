@@ -429,7 +429,7 @@ def transmission_calc(args):
     c_ops = collapse_operators(params)
     params.fd = fd
     H = hamiltonian(params)
-    rho_ss = steadystate(H, c_ops)
+    rho_ss = steadystate(H, c_ops, max_iter_refine=10, scaling_vectors=False, weighted_matching=False)
     rho_c_ss = rho_ss.ptrace(0)
     rho_t_ss = rho_ss.ptrace(1)
     c_occupations = rho_c_ss.diag()
