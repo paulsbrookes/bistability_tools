@@ -128,7 +128,7 @@ def curve_calc(C, steady_state, adr_state, region=None):
         return objective
 
 
-def metastable_calc(steady_state, adr_state):
+def metastable_calc(steady_state, adr_state, return_coefficients=False):
     adr_state /= np.sqrt((adr_state**2).tr())
     res1 = scipy.optimize.minimize(curve_calc, 2.0, method='Nelder-Mead', args=(steady_state, adr_state, 'lower'))
     res2 = scipy.optimize.minimize(curve_calc, -2.0, method='Nelder-Mead', args=(steady_state, adr_state, 'upper'))
@@ -142,7 +142,10 @@ def metastable_calc(steady_state, adr_state):
     amplitudes = [np.abs(expect(state, a)) for state in meta_states]
     sort_indices = np.argsort(amplitudes)
     meta_states = meta_states[sort_indices]
-    return meta_states[0], meta_states[1]
+    if return_coefficients:
+        return meta_states[0], meta_states[1], [res1.x[0], res2.x[0]]
+    else:
+        return meta_states[0], meta_states[1]
 
 
 def rates_calc(L, rho_d, rho_b):
