@@ -443,7 +443,7 @@ def sweep(eps, fd_lower, fd_upper, params, threshold, custom, method='direct', o
     results = pd.DataFrame()
 
     while (queue.size > 0) and (curvature_iterations < 3):
-        print curvature_iterations
+        print(curvature_iterations)
         curvature_iterations = curvature_iterations + 1
         results = transmission_calc_array(queue, results, custom, method=method, options=options)
         queue.curvature_generate(results, threshold)

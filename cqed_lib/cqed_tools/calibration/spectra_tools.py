@@ -153,7 +153,7 @@ class Results:
         transmissions_change = (reduced_transmissions == self.transmissions)
         edge_occupations_c_change = (reduced_edge_occupations_c == self.edge_occupations_c)
         edge_occupations_t_change = (reduced_edge_occupations_t == self.edge_occupations_t)
-        print np.all([params_change, fd_points_change, transmissions_change, edge_occupations_c_change, edge_occupations_t_change])
+        print(np.all([params_change, fd_points_change, transmissions_change, edge_occupations_c_change, edge_occupations_t_change]))
         return reduced_results
 
     def queue(self):
@@ -449,7 +449,7 @@ def sweep(eps, fd_lower, fd_upper, params, threshold):
     results = Results()
 
     while (queue.size > 0) and (curvature_iterations < 3):
-        print curvature_iterations
+        print(curvature_iterations)
         curvature_iterations = curvature_iterations + 1
         new_results = transmission_calc_array(queue)
         results = results.concatenate(new_results)
