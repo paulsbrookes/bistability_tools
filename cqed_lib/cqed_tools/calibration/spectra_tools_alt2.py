@@ -46,7 +46,7 @@ def lin_func(x, a, b):
 def steadystate_occupations_calc(params):
     c_ops = collapse_operators(params)
     H = hamiltonian(params)
-    rho_ss = steadystate(H, c_ops)
+    rho_ss = steadystate(H, c_ops, max_iter_refine=10, scaling_vectors=False, weighted_matching=False)
     a = tensor(destroy(params.c_levels), qeye(params.t_levels))
     sm = tensor(qeye(params.c_levels), destroy(params.t_levels))
     n_t = expect(sm.dag() * sm, rho_ss)
@@ -407,7 +407,7 @@ def transmission_calc(args, results, custom=False, method='direct', options=Spec
                 rho_ss, eigenvalues = steadystate_custom(H, c_ops, initial, eigenvalues=True, k=10)
                 save_eigenvalues(eigenvalues, params)
             else:
-                rho_ss = steadystate(H, c_ops, method=method)
+                rho_ss = steadystate(H, c_ops, method=method, max_iter_refine=10, scaling_vectors=False, weighted_matching=False)
             completed = True
         except:
             rho_ss = None
@@ -423,7 +423,7 @@ def transmission_calc_old(args, results):
     c_ops = collapse_operators(params)
     params.fd = fd
     H = hamiltonian(params)
-    rho_ss = steadystate(H, c_ops)
+    rho_ss = steadystate(H, c_ops, max_iter_refine=10, scaling_vectors=False, weighted_matching=False)
     rho_c_ss = rho_ss.ptrace(0)
     rho_t_ss = rho_ss.ptrace(1)
     c_occupations = rho_c_ss.diag()
