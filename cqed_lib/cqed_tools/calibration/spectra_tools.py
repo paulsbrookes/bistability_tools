@@ -467,8 +467,8 @@ def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold):
     for eps in eps_array:
         multi_results_dict[eps] = sweep(eps, fd_lower, fd_upper, params, threshold)
         params = multi_results_dict[eps].params[0]
-        print params.c_levels
-        print params.t_levels
+        print(params.c_levels)
+        print(params.t_levels)
 
     return multi_results_dict
 
