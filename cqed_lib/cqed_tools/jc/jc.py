@@ -23,15 +23,15 @@ def c_ops_gen_jc(params, alpha=0):
     sm = tensor(sigmam(), qeye(params.c_levels))
     a = tensor(qeye(2), destroy(params.c_levels)) + alpha
     if params.gamma > 0.0:
-        c_ops.append(np.sqrt(2*np.pi*params.gamma)*sm)
+        c_ops.append(np.sqrt(2*np.pi*params.gamma*(1+params.n_t))*sm)
         if params.n_t > 0:
-            c_ops.append(np.sqrt(2*np.pi*params.gamma*(1+params.n_t))*sm.dag())
+            c_ops.append(np.sqrt(2*np.pi*params.gamma*params.n_t)*sm.dag())
     if params.gamma_phi > 0.0:
         c_ops.append(np.sqrt(2*np.pi*params.gamma_phi)*sm.dag()*sm)
     if params.kappa > 0.0:
-        c_ops.append(np.sqrt(2*np.pi*params.kappa)*a)
+        c_ops.append(np.sqrt(2*np.pi*params.kappa*(1+params.n_c))*a)
         if params.n_c > 0:
-            c_ops.append(np.sqrt(2*np.pi*params.gamma*(1+params.n_c))*a.dag())
+            c_ops.append(np.sqrt(2*np.pi*params.kappa*params.n_c)*a.dag())
     return c_ops
 
 

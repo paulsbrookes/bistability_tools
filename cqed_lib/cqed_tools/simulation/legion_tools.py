@@ -934,6 +934,7 @@ def maximum_finder(data):
 def line_func_2(x, y, a):
     return x[np.newaxis, :] + a[:, np.newaxis] * (y - x)[np.newaxis, :]
 
+
 def window_maximum_finder(i_limits, j_limits, array):
     array_reduced = array[i_limits[0]:i_limits[1], j_limits[0]:j_limits[1]]
     row_indices, column_indices = maximum_finder(array_reduced)

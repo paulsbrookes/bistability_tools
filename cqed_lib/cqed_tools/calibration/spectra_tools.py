@@ -429,6 +429,7 @@ def transmission_calc(args):
     c_ops = collapse_operators(params)
     params.fd = fd
     H = hamiltonian(params)
+    print('inside transmission_calc')
     rho_ss = steadystate(H, c_ops, max_iter_refine=10, scaling_vectors=False, weighted_matching=False)
     rho_c_ss = rho_ss.ptrace(0)
     rho_t_ss = rho_ss.ptrace(1)
@@ -460,6 +461,7 @@ def sweep(eps, fd_lower, fd_upper, params, threshold):
 
 
 def multi_sweep(eps_array, fd_lower, fd_upper, params, threshold):
+    print('inside multi_sweep')
     multi_results_dict = dict()
 
     for eps in eps_array:
