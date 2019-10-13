@@ -2,10 +2,13 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import numpy as np
+from qutip import *
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
+import scipy
 from .loading import load_settings
 from .fitting import decay_gen
+from ..tools.tools import metastable_calc_optimization, prob_objective_calc
 
 
 class TransientResults:
@@ -202,19 +205,19 @@ class TransientResults:
                     checkpoint_state = qload(path + '/state_checkpoint')
                     checkpoint_state += checkpoint_state.dag()
                     checkpoint_state /= checkpoint_state.tr()
+                    packaged_states = pd.DataFrame(np.array([[steady_state, checkpoint_state]]),
+                                                   columns=['steady', 'checkpoint'])
+                    packaged_states['job_index'] = settings.job_index
+                    packaged_states['eps'] = settings.eps
+                    packaged_states['fd'] = settings.fd
+                    packaged_states.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
+                    if self.states is None:
+                        self.states = packaged_states
+                    else:
+                        self.states = pd.concat([self.states, packaged_states], sort=True)
                 except Exception as e:
                     print(e, path)
 
-                packaged_states = pd.DataFrame(np.array([[steady_state, checkpoint_state]]),
-                                               columns=['steady', 'checkpoint'])
-                packaged_states['job_index'] = settings.job_index
-                packaged_states['eps'] = settings.eps
-                packaged_states['fd'] = settings.fd
-                packaged_states.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
-                if self.states is None:
-                    self.states = packaged_states
-                else:
-                    self.states = pd.concat([self.states, packaged_states], sort=True)
         self.states = self.states.reorder_levels(['job_index', 'eps', 'fd'])
         self.states.sort_index(inplace=True, level=['eps', 'fd'])
 
