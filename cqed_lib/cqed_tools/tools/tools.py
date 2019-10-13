@@ -1,10 +1,9 @@
 from qutip import *
-import numpy as np
 import scipy
 import pandas as pd
 import numpy as np
 from copy import deepcopy
-from ..simulation import hamiltonian
+from ..simulation import hamiltonian, maximum_finder
 
 
 def add_column(df, op, name):
@@ -236,3 +235,82 @@ def isolate_metastable(params, alpha, truncated_c_levels, return_alpha=None):
         displacement_op = tensor(displace(params.c_levels, return_alpha), qeye(params.t_levels))
     rho_ss = displacement_op*rho_ss*displacement_op.dag()
     return rho_ss
+
+
+def metastable_calc_optimization(rho_ss, rho_adr):
+    rho_ss /= rho_ss.tr()
+    rho_adr /= rho_adr.tr()
+
+    rho_c_ss = rho_ss.ptrace(0)
+    rho_c_adr = rho_adr.ptrace(0)
+
+    res = scipy.optimize.minimize(objective_calc, 0.0, method='Nelder-Mead', args=(rho_c_ss, rho_c_adr))
+    rho_d = rho_ss + res.x[0] * rho_adr
+    rho_d /= rho_d.tr()
+
+    rho_2 = rho_d
+    rho_c_2 = rho_2.ptrace(0)
+
+    rho_1 = rho_adr
+    rho_1 -= rho_2 * (rho_1 * rho_2).tr() / (rho_2 * rho_2).tr()
+    rho_c_1 = rho_1.ptrace(0)
+    res = scipy.optimize.minimize(objective_calc, 0.0, method='Nelder-Mead', args=(rho_c_1, rho_c_2))
+    rho_b_adr = rho_1 + res.x[0] * rho_2
+    rho_b_adr /= rho_b_adr.tr()
+
+    rho_1 = rho_ss
+    rho_1 -= rho_2 * (rho_1 * rho_2).tr() / (rho_2 * rho_2).tr()
+    rho_c_1 = rho_1.ptrace(0)
+    res = scipy.optimize.minimize(objective_calc, 0.0, method='Nelder-Mead', args=(rho_c_1, rho_c_2))
+    rho_b_ss = rho_1 + res.x[0] * rho_2
+    rho_b_ss /= rho_b_ss.tr()
+
+    states_b = [rho_b_ss, rho_b_adr]
+    distances = [tracedist(rho_b, rho_d) for rho_b in states_b]
+    rho_b = states_b[np.argmax(distances)]
+
+    c_levels = rho_b.dims[0][0]
+    t_levels = rho_d.dims[0][1]
+    a = tensor(destroy(c_levels), qeye(t_levels))
+    a_exp = [np.abs(expect(a, rho_d)), np.abs(expect(a, rho_b))]
+    states = np.array([rho_d, rho_b])
+    states = states[np.argsort(a_exp)]
+
+    return states[0], states[1]
+
+
+def ratio_calc(state, n_bins=100, return_peaks=False):
+    xvec = np.linspace(-8, 8, n_bins)
+    W = np.abs(wigner(state, xvec, xvec, g=2))
+    W[40:60, 45:70] = 0
+    peak_indices = maximum_finder(W)
+    peak_heights = np.array([W[peak_indices[0][idx], peak_indices[1][idx]] for idx in range(len(peak_indices[0]))])
+    peaks = pd.DataFrame(np.array([peak_indices[0], peak_indices[1], peak_heights]).T, columns=['i', 'j', 'height'])
+    dtypes = {'i': int, 'j': int, 'height': float}
+    peaks = peaks.astype(dtypes)
+    peaks.sort_values(by='height', axis=0, ascending=False, inplace=True)
+
+    i_diff = peaks.iloc[0].i - peaks.iloc[1].i
+    j_diff = peaks.iloc[0].j - peaks.iloc[1].j
+    dist = np.sqrt(i_diff ** 2 + j_diff ** 2)
+    if dist < 10:
+        index = peaks.index[1]
+        peaks.drop(index=index, inplace=True)
+
+    ratio = peaks['height'].iloc[1] / peaks['height'].iloc[0]
+    if return_peaks:
+        return ratio, peaks
+    else:
+        return ratio
+
+
+def objective_calc(x, rho1, rho2):
+    rho = rho1 + x[0] * rho2
+    ratio = ratio_calc(rho)
+    return ratio
+
+
+def prob_objective_calc(x, rho_d, rho_b, rho_steady):
+    rho = x[0] * rho_d + (1 - x[0]) * rho_b
+    distance = tracedist(rho, rho_steady)
+    return distance

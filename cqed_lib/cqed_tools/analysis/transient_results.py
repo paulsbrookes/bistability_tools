@@ -169,7 +169,7 @@ class TransientResults:
                 self.fit_params = fit_params
             else:
                 self.fit_params = pd.concat([self.fit_params, fit_params], sort=True)
-            self.fit_params.sort_index(inplace=True)
+            self.fit_params.sort_index(inplace=True, level=['eps', 'fd'])
 
     def slowdown_calc(self):
         transient_indices = self.transients.index.droplevel('times')
@@ -177,8 +177,9 @@ class TransientResults:
         for index in set(transient_indices).intersection(steadystate_indices):
             try:
                 self.fit_transient(index)
-            except:
-                print(index)
+            except Exception as e:
+                print(e, index)
+        self.fit_params.sort_index(level=['eps', 'fd'], inplace=True)
 
     def load_exp(self, path):
         self.exp_results = pd.read_hdf(path)
@@ -188,3 +189,142 @@ class TransientResults:
 
     def load_exp_spectra(self, path):
         self.exp_spectra = pd.read_hdf(path)
+
+    def load_states(self, directory):
+        self.states = None
+        walk = os.walk(directory)
+        for path_info in walk:
+            path = path_info[0]
+            if os.path.exists(path + '/results.csv'):
+                try:
+                    settings = load_settings(path + '/settings.csv')
+                    steady_state = qload(path + '/steady_state')
+                    checkpoint_state = qload(path + '/state_checkpoint')
+                    checkpoint_state += checkpoint_state.dag()
+                    checkpoint_state /= checkpoint_state.tr()
+                except Exception as e:
+                    print(e, path)
+
+                packaged_states = pd.DataFrame(np.array([[steady_state, checkpoint_state]]),
+                                               columns=['steady', 'checkpoint'])
+                packaged_states['job_index'] = settings.job_index
+                packaged_states['eps'] = settings.eps
+                packaged_states['fd'] = settings.fd
+                packaged_states.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
+                if self.states is None:
+                    self.states = packaged_states
+                else:
+                    self.states = pd.concat([self.states, packaged_states], sort=True)
+        self.states = self.states.reorder_levels(['job_index', 'eps', 'fd'])
+        self.states.sort_index(inplace=True, level=['eps', 'fd'])
+
+    def metastable_calc(self):
+        self.metastable_states = None
+        states = parallel_map(metastable_calc_task, self.states.index, task_args=(self.states,), num_cpus=10)
+        self.metastable_states = pd.concat(states)
+        self.metastable_states = self.metastable_states.reorder_levels(['job_index', 'eps', 'fd'])
+        self.metastable_states.sort_index(inplace=True, level=['eps', 'fd'])
+
+    def occupations_calc(self):
+        self.occupations = None
+        for idx in self.states.index:
+            print(idx)
+            try:
+                states = self.states.loc[idx]
+                rho_steady = states.steady
+                metastable_states = self.metastable_states.loc[idx]
+                rho_d = metastable_states.dim
+                rho_b = metastable_states.bright
+                res = scipy.optimize.minimize(prob_objective_calc, 0.0, method='Nelder-Mead',
+                                              args=(rho_d.ptrace(0), rho_b.ptrace(0), rho_steady.ptrace(0)))
+                p_d = res.x[0]
+                p_b = 1 - p_d
+                rho = p_d * rho_d + p_b * rho_b
+                distance = tracedist(rho_steady, rho)
+                packaged_occupations = pd.DataFrame(np.array([[p_d, p_b, distance]]), columns=['d', 'b', 'distance'])
+                packaged_occupations['job_index'] = idx[0]
+                packaged_occupations['eps'] = idx[1]
+                packaged_occupations['fd'] = idx[2]
+                packaged_occupations.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
+                if self.occupations is None:
+                    self.occupations = packaged_occupations
+                else:
+                    self.occupations = pd.concat([self.occupations, packaged_occupations], sort=True)
+            except Exception as e:
+                print(e, idx)
+        self.occupations = self.occupations.reorder_levels(['job_index', 'eps', 'fd'])
+        self.occupations.sort_index(inplace=True, level=['eps', 'fd'])
+
+    def amplitudes_calc(self):
+        self.amplitudes = None
+        for idx in self.metastable_states.index:
+            print(idx)
+            try:
+                metastable_states = self.metastable_states.loc[idx]
+                rho_d = metastable_states.dim
+                rho_b = metastable_states.bright
+                c_levels = rho_b.dims[0][0]
+                t_levels = rho_b.dims[0][1]
+                a = tensor(destroy(c_levels), qeye(t_levels))
+                b = tensor(qeye(c_levels), destroy(t_levels))
+                amplitudes = np.array([[expect(rho_b, a), expect(rho_d, a), expect(rho_b, b), expect(rho_d, b)]])
+                amplitudes = pd.DataFrame(amplitudes, columns=['a_b', 'a_d', 'b_b', 'b_d'])
+                amplitudes['job_index'] = idx[0]
+                amplitudes['eps'] = idx[1]
+                amplitudes['fd'] = idx[2]
+                amplitudes.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
+                if self.amplitudes is None:
+                    self.amplitudes = amplitudes
+                else:
+                    self.amplitudes = pd.concat([self.amplitudes, amplitudes], sort=True)
+            except Exception as e:
+                print(e, idx)
+        self.amplitudes = self.amplitudes.reorder_levels(['job_index', 'eps', 'fd'])
+        self.amplitudes.sort_index(inplace=True, level=['eps', 'fd'])
+
+    def rates_calc(self):
+        self.rates = None
+        mi1 = self.fit_params.index
+        mi2 = self.occupations.index
+        mi_common = mi1.intersection(mi2)
+        mi_common = mi_common.sort_values()
+
+        for idx in mi_common:
+            T_s = self.fit_params.loc[idx]['Ts']
+            p_b = self.occupations.loc[idx].b
+            p_d = self.occupations.loc[idx].d
+            rate_bd = p_d / T_s
+            rate_db = p_b / T_s
+
+            rates = np.array([[rate_bd, rate_db]])
+            rates = pd.DataFrame(rates, columns=['bd', 'db'])
+            rates['job_index'] = idx[0]
+            rates['eps'] = idx[1]
+            rates['fd'] = idx[2]
+
+            rates.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
+            if self.rates is None:
+                self.rates = rates
+            else:
+                self.rates = pd.concat([self.rates, rates], sort=True)
+
+        self.rates = self.rates.reorder_levels(['job_index', 'eps', 'fd'])
+        self.rates.sort_index(inplace=True, level=['eps', 'fd'])
+
+
+def metastable_calc_task(idx, states):
+    print(idx)
+    pair = states.loc[idx]
+    rho_check = pair.checkpoint
+    rho_steady = pair.steady
+    try:
+        rho_d, rho_b = metastable_calc_optimization(rho_steady, rho_check)
+        packaged_states = pd.DataFrame(np.array([[rho_d, rho_b]]), columns=['dim', 'bright'])
+        packaged_states['job_index'] = idx[0]
+        packaged_states['eps'] = idx[1]
+        packaged_states['fd'] = idx[2]
+        packaged_states.set_index(['job_index', 'eps', 'fd'], append=False, inplace=True)
+        return packaged_states
+    except Exception as e:
+        print(e, idx)
+        return None   
