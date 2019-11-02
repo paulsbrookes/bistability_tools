@@ -6,8 +6,8 @@ fd1_list = [10.4724, 10.4720, 10.4710, 10.4705, 10.4700, 10.469, 10.468, 10.467,
 fd2_list = [10.4734, 10.4732, 10.4728, 10.4725, 10.4723, 10.4723, 10.4720, 10.4717, 10.4714]
 fd_peak_list = []
 
-fd1_func = interpolate.interp1d(power_list, fd1_list)
-fd2_func = interpolate.interp1d(power_list, fd2_list)
+fd1_func = interpolate.interp1d(power_list, fd1_list, fill_value='extrapolate')
+fd2_func = interpolate.interp1d(power_list, fd2_list, fill_value='extrapolate')
 
 
 def frequencies_gen(fd0, fd1, fd2, fd3, df0, df1, df2):
